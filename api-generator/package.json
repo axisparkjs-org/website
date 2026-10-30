@@ -1,0 +1,15 @@
+{
+    "name": "@axisparkjs/api-generator",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Generates the API reference from the TSDoc comments of the axispark repository.",
+    "scripts": {
+        "generate": "typedoc --options typedoc.json"
+    },
+    "devDependencies": {
+        "typedoc": "^0.28.20",
+        "typedoc-docusaurus-theme": "^1.4.3",
+        "typedoc-plugin-markdown": "^4.14.1",
+        "typescript": "^5.9.3"
+    }
+}

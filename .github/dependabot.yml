@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - update
+      - documentation
+    groups:
+      docs-dependencies:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+
+  # TypeDoc and its plugins, used to generate the API reference.
+  - package-ecosystem: npm
+    directory: /api-generator
+    schedule:
+      interval: weekly
+    labels:
+      - update
+      - documentation
+    groups:
+      api-generator-dependencies:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - update

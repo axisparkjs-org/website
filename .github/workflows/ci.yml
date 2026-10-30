@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - feature/**
+      - release/**
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout documentation
+        uses: actions/checkout@v7
+
+      # The API reference is generated from the code, so the documentation is verified against the main branch.
+      - name: Checkout axispark
+        uses: actions/checkout@v7
+        with:
+          repository: axisparkjs/axispark
+          ref: main
+          path: axispark
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            api-generator/package-lock.json
+            axispark/package-lock.json
+
+      # The API reference is generated from the built packages.
+      - name: Install and build axispark
+        working-directory: axispark
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install documentation dependencies
+        run: npm ci
+
+      - name: Install API generator dependencies
+        run: npm run api:ci
+
+      - name: Generate API documentation
+        run: npm run api:generate
+
+      - name: Build documentation
+        run: npm run build

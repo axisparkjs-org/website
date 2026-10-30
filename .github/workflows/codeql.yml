@@ -1,0 +1,25 @@
+name: CodeQL
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    uses: axisparkjs-org/.github/.github/workflows/codeql.yml@main
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
