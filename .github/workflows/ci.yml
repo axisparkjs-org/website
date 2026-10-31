@@ -59,3 +59,14 @@ jobs:
 
       - name: Build documentation
         run: npm run build
+
+  # Every verified push to `main` runs the CD, which publishes the `latest` image used by staging.
+  cd:
+    name: CD
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/cd.yml
+    secrets: inherit

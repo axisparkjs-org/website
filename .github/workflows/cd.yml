@@ -1,13 +1,20 @@
 name: CD
 
 on:
-  # Sent by the axispark repository (CD workflow) when a new version is released.
+  # Sent by the axispark repository (CD workflow) when a new version is released: the site is deployed
+  # to GitHub Pages.
   repository_dispatch:
     types: [axispark-release]
+  # Called by the CI workflow after every verified push to `main`: the API reference is generated from
+  # axispark `main` and the site is published as the `latest` staging image.
+  workflow_call:
 
 concurrency:
-  group: pages
+  group: ${{ github.event_name == 'repository_dispatch' && 'pages' || 'staging' }}
   cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/axisparkjs-website
 
 jobs:
   build:
@@ -17,12 +24,12 @@ jobs:
       - name: Checkout documentation
         uses: actions/checkout@v7
 
-      # `ref` is the release commit of axispark sent in the event.
+      # `ref` is the release commit of axispark sent in the event, or `main` when called by the CI.
       - name: Checkout axispark
         uses: actions/checkout@v7
         with:
           repository: axisparkjs/axispark
-          ref: ${{ github.event.client_payload.ref }}
+          ref: ${{ github.event.client_payload.ref || 'main' }}
           path: axispark
 
       - uses: actions/setup-node@v7
@@ -53,17 +60,30 @@ jobs:
       - name: Build documentation
         run: npm run build
 
+      # Release: artifact for GitHub Pages.
       - name: Setup Pages
+        if: github.event_name == 'repository_dispatch'
         uses: actions/configure-pages@v6
 
       - name: Upload artifact
+        if: github.event_name == 'repository_dispatch'
         uses: actions/upload-pages-artifact@v5
         with:
           path: build
 
+      # Called by the CI: artifact for the staging image.
+      - name: Upload site
+        if: github.event_name != 'repository_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: website-build
+          path: build
+          retention-days: 1
+
   deploy:
     name: Deploy to GitHub Pages
     needs: build
+    if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -75,3 +95,50 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  staging:
+    name: Publish staging image
+    needs: build
+    if: github.event_name != 'repository_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout documentation
+        uses: actions/checkout@v7
+
+      - name: Download site
+        uses: actions/download-artifact@v8
+        with:
+          name: website-build
+          path: build
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

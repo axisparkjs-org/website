@@ -1,0 +1,4 @@
+# The image only needs the generated site and the nginx configuration.
+*
+!build/
+!docker/nginx.conf
