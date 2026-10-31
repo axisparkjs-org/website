@@ -24,7 +24,6 @@ jobs:
       - name: Checkout documentation
         uses: actions/checkout@v7
 
-      # The API reference is generated from the code, so the documentation is verified against the main branch.
       - name: Checkout axispark
         uses: actions/checkout@v7
         with:
@@ -41,7 +40,6 @@ jobs:
             api-generator/package-lock.json
             axispark/package-lock.json
 
-      # The API reference is generated from the built packages.
       - name: Install and build axispark
         working-directory: axispark
         run: |
@@ -68,5 +66,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pages: write
+      id-token: write
     uses: ./.github/workflows/cd.yml
     secrets: inherit
