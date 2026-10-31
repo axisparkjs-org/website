@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/axisparkjs-website
+  IMAGE: ghcr.io/${{ github.repository_owner }}/website
 
 jobs:
   build:

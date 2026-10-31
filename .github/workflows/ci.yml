@@ -27,7 +27,7 @@ jobs:
       - name: Checkout axispark
         uses: actions/checkout@v7
         with:
-          repository: axisparkjs/axispark
+          repository: axisparkjs-org/axispark
           ref: main
           path: axispark
 
