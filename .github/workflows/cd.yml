@@ -28,7 +28,7 @@ jobs:
       - name: Checkout axispark
         uses: actions/checkout@v7
         with:
-          repository: axisparkjs/axispark
+          repository: axisparkjs-org/axispark
           ref: ${{ github.event.client_payload.ref || 'main' }}
           path: axispark
 
@@ -142,3 +142,21 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # The image must be public so staging can pull it without credentials. GitHub creates packages as
+      # private and the GITHUB_TOKEN cannot change it: it is done once in the package settings.
+      - name: Check that the image is public
+        run: |
+          REPO="${IMAGE#ghcr.io/}"
+          REPO="${REPO,,}"
+          TOKEN=$(curl -fsS "https://ghcr.io/token?scope=repository:${REPO}:pull" | jq -r '.token // empty' || true)
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json" \
+            "https://ghcr.io/v2/${REPO}/manifests/latest")
+
+          if [ "$CODE" = "200" ]; then
+            echo "ghcr.io/${REPO}:latest is public"
+          else
+            echo "::warning title=Private image::ghcr.io/${REPO} cannot be pulled anonymously (HTTP ${CODE}). Make it public once in https://github.com/orgs/${{ github.repository_owner }}/packages/container/package/${REPO#*/} > Package settings > Change visibility > Public."
+          fi
