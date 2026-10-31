@@ -100,3 +100,6 @@ export class ConnectionInspector {
 
 `getConnection(name)` returns the connection for that name, or `undefined` if no connection with that name is configured. `getAllConnections()` returns a new `Map<string, AmqpConnectionManager>` containing all configured connections.
 
+## Health checks
+
+The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `rabbitmq:<name>` for each configured connection. It checks that the connection is open and reports its number of channels. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.

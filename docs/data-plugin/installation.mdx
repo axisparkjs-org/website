@@ -124,6 +124,10 @@ The Data options accept TypeORM `DataSourceOptions`, while the derived-query dis
 
 Other TypeORM data source types may still provide TypeORM's own repository methods through `BaseRepository`, but derived methods fail with an unsupported-driver error until an engine is added. The SQL engine uses TypeORM `SelectQueryBuilder`; the Mongo engine builds Mongo filters and uses `MongoRepository`.
 
+## Health checks
+
+The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `data:<name>` for each configured data source. It runs `SELECT 1` on SQL data sources (`SELECT 1 FROM DUAL` on Oracle) and `ping` on MongoDB. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.
+
 ## Next steps
 
 See [Repositories](./repositories) to define and inject repositories, and [Derived queries](./derived-queries) for the method-name format, operators, ordering, and pagination.

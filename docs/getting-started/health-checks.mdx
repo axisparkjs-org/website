@@ -4,7 +4,7 @@ sidebar_position: 7
 
 # Health Checks
 
-AxiSpark.js includes a health engine that reports the status of the application and each registered plugin. The status is calculated from the plugin lifecycle, so it does not need any extra configuration.
+AxiSpark.js includes a health engine that reports the status of the application, each registered plugin and each health check. The plugin status is calculated from the plugin lifecycle, and health checks report the status of external dependencies such as databases, brokers or APIs.
 
 ## HealthEngine
 
@@ -18,26 +18,83 @@ import { Injectable } from '@axisparkjs/di';
 export class StatusService {
     constructor(private readonly healthEngine: HealthEngine) {}
 
-    public isHealthy(): boolean {
-        return this.healthEngine.checkApp().status === HealthStatus.Healthy;
+    public async isHealthy(): Promise<boolean> {
+        const app = await this.healthEngine.checkApp();
+        return app.status === HealthStatus.Healthy;
     }
 }
 ```
 
-It exposes two methods:
+It exposes these methods:
 
 | Method | Returns |
 | --- | --- |
-| `checkAll()` | An array of `HealthData`. The first item is the application status, followed by one item per registered plugin. |
-| `checkApp()` | Only the application `HealthData`, the first item of `checkAll()`. |
+| `checkAll()` | A promise with an array of `HealthData`. The first item is the application status, followed by one item per registered plugin and one item per health check. |
+| `checkApp()` | A promise with only the application `HealthData`, the first item of `checkAll()`. |
+| `register(indicator, options?)` | Registers a `HealthIndicator` instance. Plugins use it to register the checks of their connections. |
+
+## Custom Health Checks
+
+Create a class that extends `HealthIndicator` and decorate it with `@HealthCheck`. The class is discovered automatically by the scanner, resolved through the dependency injection container and run every time the health of the application is checked, so it can inject other services:
+
+```ts title="payments-api-health.ts"
+import { HealthCheck, HealthCheckResult, HealthIndicator, HealthStatus } from '@axisparkjs/core';
+import { PaymentsClient } from './payments-client';
+
+@HealthCheck({ name: 'payments-api', timeout: 2000 })
+export class PaymentsApiHealth extends HealthIndicator {
+    constructor(private readonly client: PaymentsClient) {
+        super();
+    }
+
+    async check(): Promise<HealthCheckResult> {
+        const latency = await this.client.ping();
+        return { status: HealthStatus.Healthy, details: { latency } };
+    }
+}
+```
+
+`check()` returns a `HealthCheckResult` with a `status` and optional `details`, which are included in the health response. If `check()` throws an error or exceeds its timeout, the check is reported as `Unhealthy` and the error message is added to `details.error`.
+
+`@HealthCheck` accepts these options:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `name` | Class name | Component name of the check in the health response. |
+| `timeout` | `5000` | Maximum time in milliseconds for the check. If it is exceeded, the check is reported as `Unhealthy`. |
+| `critical` | `true` | Whether a failure of the check makes the whole application `Unhealthy`. Non-critical checks are reported, but they do not change the application status. |
+
+All checks run in parallel, so a slow check does not delay the others and the health endpoints never wait longer than the highest timeout.
+
+## Built-in Checks
+
+The connection plugins register one health check per configured connection:
+
+| Plugin | Component name | Check |
+| --- | --- | --- |
+| [Data Plugin](../data-plugin/installation) | `data:<name>` | Runs `SELECT 1` on SQL data sources (`SELECT 1 FROM DUAL` on Oracle) and `ping` on MongoDB. |
+| [Kafka](../connections/kafka) | `kafka:<name>` | Connects an admin client, without retries, and describes the cluster. |
+| [RabbitMQ](../connections/rabbitmq) | `rabbitmq:<name>` | Checks that the connection is open and reports its number of channels. |
+
+If a connection drops after the application has started, its check reports `Unhealthy`, and so does the application. The built-in checks are critical and use the default timeout. Disable them with the `healthChecks: false` plugin option:
+
+```ts title="app.ts"
+app.use(
+    KafkaPlugin,
+    KafkaPluginOptionsFactory.create({
+        connections: [{ name: 'ORDERS', config: { brokers: ['localhost:9092'] } }],
+        healthChecks: false
+    })
+);
+```
 
 ## HealthData
 
-Each check is returned as a `HealthData` object:
+Each item is returned as a `HealthData` object:
 
 ```ts
 interface HealthData {
-    /** Application name or plugin class name. */
+    /** Application name, plugin class name or health check name. */
     component: string;
     /** HealthStatus.Unknown ('unknown'), HealthStatus.Healthy ('healthy') or HealthStatus.Unhealthy ('unhealthy'). */
     status: HealthStatus;
@@ -49,7 +106,8 @@ interface HealthData {
 ```
 
 - For a plugin, `details` contains the plugin name (`plugin`) and, when the plugin failed, the error message (`error`).
-- For the application, `details.plugins` contains the `component` and `status` of every plugin.
+- For a health check, `details` contains the `details` returned by the check, whether the check is `critical` and, when the check failed, the error message (`error`).
+- For the application, `details.plugins` contains the `component` and `status` of every plugin, and `details.checks` the `component`, `status` and `critical` flag of every health check.
 
 ## Plugin Status
 
@@ -65,10 +123,10 @@ A plugin enters the `Error` state when one of its lifecycle methods (`onRegister
 
 ## Application Status
 
-The application status is calculated from the plugin statuses:
+The application status is calculated from the plugin statuses and the critical health checks:
 
-- `Healthy` when every plugin is `Healthy`.
-- `Unhealthy` when at least one plugin is `Unhealthy`.
+- `Healthy` when every plugin and every critical check is `Healthy`.
+- `Unhealthy` when at least one plugin or critical check is `Unhealthy`.
 - `Unknown` otherwise, for example while the plugins are still registering or after they are stopped.
 
 ## HTTP Endpoints
@@ -92,9 +150,9 @@ The following endpoints are registered under the plugin `basePath`:
 
 | Endpoint | Status code | Response |
 | --- | --- | --- |
-| `GET /health` | `200` when every check is healthy, `503` otherwise. | Application status and every check returned by `checkAll()`. |
+| `GET /health` | `200` when the application is healthy, `503` otherwise. | Application status and every item returned by `checkAll()`. |
 | `GET /health/liveness` | Always `200`. | Application status. |
-| `GET /health/readiness` | `200` when every check is healthy, `503` otherwise. | `healthy` status, or an error listing the components that are not healthy. |
+| `GET /health/readiness` | `200` when the application is healthy, `503` otherwise. | `healthy` status, or an error listing the components that are not healthy, excluding non-critical checks. |
 
 ### Example Responses
 
@@ -110,7 +168,8 @@ The following endpoints are registered under the plugin `basePath`:
             "timestamp": "2026-01-01T10:00:00.000Z",
             "status": "healthy",
             "details": {
-                "plugins": [{ "component": "HttpPlugin", "status": "healthy" }]
+                "plugins": [{ "component": "HttpPlugin", "status": "healthy" }],
+                "checks": [{ "component": "payments-api", "status": "healthy", "critical": true }]
             }
         },
         {
@@ -118,6 +177,12 @@ The following endpoints are registered under the plugin `basePath`:
             "timestamp": "2026-01-01T10:00:00.000Z",
             "status": "healthy",
             "details": { "plugin": "HttpPlugin" }
+        },
+        {
+            "component": "payments-api",
+            "timestamp": "2026-01-01T10:00:00.000Z",
+            "status": "healthy",
+            "details": { "latency": 12, "critical": true }
         }
     ]
 }
@@ -132,11 +197,11 @@ The following endpoints are registered under the plugin `basePath`:
 }
 ```
 
-`GET /api/health/readiness` when a plugin failed:
+`GET /api/health/readiness` when a plugin and a health check failed:
 
 ```json
 {
-    "error": "Some components are not healthy: My App, BadPlugin",
+    "error": "Some components are not healthy: My App, BadPlugin, payments-api",
     "status": 503
 }
 ```

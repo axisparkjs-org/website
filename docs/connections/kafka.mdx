@@ -174,3 +174,7 @@ export class ConnectionInspector {
 ```
 
 The `getConnection`, `getProducer`, and `getConsumer` methods return `undefined` when the name is unknown or the client has not been initialized. Each `getAll...` method returns a new map, so changing that map does not change the manager's internal state.
+
+## Health checks
+
+The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `kafka:<name>` for each configured connection. It connects an admin client, without retries, and describes the cluster. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.
