@@ -3,6 +3,6 @@
     "position": 4,
     "link": {
         "type": "generated-index",
-        "description": "Configure TypeORM data sources, use generated repositories, and build derived queries with the AxiSpark.js Data plugin."
+        "description": "Configure TypeORM data sources, use generated repositories, build derived queries, and run transactions with the AxiSpark.js Data plugin."
     }
 }

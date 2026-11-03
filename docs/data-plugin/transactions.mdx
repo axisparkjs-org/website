@@ -1,0 +1,154 @@
+---
+sidebar_position: 4
+---
+
+# Transactions
+
+By default every repository call (`save`, `remove`, derived query methods…) runs on its own. When a use case writes several entities, run it inside a transaction so that all of its changes are persisted, or none of them.
+
+The Data plugin offers two ways to open a transaction:
+
+- The `@Transactional` method decorator, for declarative transactions.
+- The `TransactionManager` service, for programmatic control. `@Transactional` is built on top of it.
+
+Every repository call made inside a transaction joins it automatically, including derived query methods. Repositories don't need to receive an `EntityManager` as a parameter.
+
+## `@Transactional`
+
+Decorate a method to run it inside a transaction:
+
+```ts title="services/order.service.ts"
+import { Transactional } from '@axisparkjs/data';
+import { Injectable } from '@axisparkjs/di';
+import { Order } from '../entities/order';
+import { OrderRepository } from '../repositories/order.repository';
+import { StockRepository } from '../repositories/stock.repository';
+
+@Injectable()
+export class OrderService {
+    constructor(
+        private readonly orders: OrderRepository,
+        private readonly stock: StockRepository
+    ) {}
+
+    @Transactional()
+    async placeOrder(order: Order): Promise<Order> {
+        await this.stock.reserve(order.items);
+        return this.orders.save(order);
+    }
+}
+```
+
+- If the method throws or rejects, the transaction is rolled back and the error is rethrown.
+- Otherwise, the transaction is committed when the method resolves, and the method resolves with its result.
+- The decorated method always returns a `Promise`, so declare it `async`.
+
+`@Transactional` can be used in any class, whether it is resolved through the dependency injection container or created with `new`. It only requires the `DataPlugin` to be registered; calling a transactional method before that rejects with an error.
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `dataSource` | Name of the configured data source the transaction runs on. It can be omitted when only one data source is configured, and it is required otherwise. Names are case-sensitive and match the `name` of the data source configuration. |
+| `isolationLevel` | TypeORM isolation level: `READ UNCOMMITTED`, `READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE` or `SNAPSHOT`. Support depends on the database driver. When omitted, the database default is used. |
+
+```ts
+@Transactional({ dataSource: 'PRIMARY', isolationLevel: 'SERIALIZABLE' })
+async transfer(from: Account, to: Account, amount: number): Promise<void> {
+    // ...
+}
+```
+
+## `TransactionManager`
+
+Inject `TransactionManager` and call `runInTransaction` to open a transaction programmatically. It receives the same options as `@Transactional`:
+
+```ts title="services/order.service.ts"
+import { TransactionManager } from '@axisparkjs/data';
+import { Injectable } from '@axisparkjs/di';
+
+@Injectable()
+export class OrderService {
+    constructor(
+        private readonly orders: OrderRepository,
+        private readonly stock: StockRepository,
+        private readonly transactionManager: TransactionManager
+    ) {}
+
+    placeOrder(order: Order): Promise<Order> {
+        return this.transactionManager.runInTransaction(
+            async () => {
+                await this.stock.reserve(order.items);
+                return this.orders.save(order);
+            },
+            { dataSource: 'PRIMARY' }
+        );
+    }
+}
+```
+
+The callback receives the transactional TypeORM `EntityManager`, which is useful to run TypeORM operations that have no repository method:
+
+```ts
+await this.transactionManager.runInTransaction(async (entityManager) => {
+    await entityManager.increment(Stock, { productId }, 'reserved', quantity);
+});
+```
+
+## Transaction propagation
+
+The active transaction is stored in an [`AsyncLocalStorage`](https://nodejs.org/api/async_context.html#class-asynclocalstorage) context for the duration of the method or callback. Concurrent requests run in different async contexts, so their transactions never mix.
+
+- **Repositories join the transaction.** `BaseRepository` methods, derived query methods and custom repository methods that use `this.entityRepository` run on the transaction of the repository's data source.
+- **Nested calls join the existing transaction.** A transactional method that calls another one on the same data source does not open a new transaction: both are committed or rolled back together with the outermost one. The `isolationLevel` of the nested call is ignored. There is no `REQUIRES_NEW`-like mode to always open a new transaction.
+- **Calls outside a transaction are unchanged.** Repository calls made outside a transactional method keep running on their own, as before.
+
+```ts
+@Transactional({ dataSource: 'PRIMARY' })
+async register(customers: Customer[]): Promise<void> {
+    // Each registerOne call joins this transaction.
+    for (const customer of customers) await this.registerOne(customer);
+}
+
+@Transactional({ dataSource: 'PRIMARY' })
+async registerOne(customer: Customer): Promise<Customer> {
+    return this.customers.save(customer);
+}
+```
+
+## Custom repository methods
+
+Inside a transaction, the protected `entityRepository` of `BaseRepository` is bound to the transaction. Use it, or the protected `entityManager`, in your own repository methods so that they join transactions too:
+
+```ts title="repositories/stock.repository.ts"
+@Repository({ entity: Stock })
+export class StockRepository extends BaseRepository<Stock> {
+    async reserve(items: OrderItem[]): Promise<void> {
+        for (const item of items) {
+            await this.entityRepository.decrement({ productId: item.productId }, 'available', item.quantity);
+        }
+    }
+
+    async releaseAll(): Promise<void> {
+        await this.entityManager.query('UPDATE stock SET reserved = 0');
+    }
+}
+```
+
+`entityManager` is the transactional `EntityManager` inside a transaction of the repository's data source, and the data source's default manager otherwise. Operations made directly on the injected `DataSource` (for example `dataSource.query(...)`) are **not** part of the transaction.
+
+## One data source per transaction
+
+A transaction only covers one data source: the one selected with the `dataSource` option. Calls to repositories of other data sources made inside the method are not part of it. They run on their own and are not rolled back if the method throws.
+
+To make a call on another data source transactional, open a separate transaction for it, for example with a nested `@Transactional({ dataSource: 'REPORTING' })` method. That transaction is independent: it is committed when the nested method resolves, even if the outer transaction is rolled back later.
+
+## MongoDB
+
+MongoDB transactions in TypeORM require a replica set and have limited support. For MongoDB data sources, `@Transactional` and `runInTransaction` run the method **without a transaction** and log a warning the first time it happens for each data source:
+
+```text
+Data source 'PRIMARY' uses MongoDB: transactional methods run without a transaction.
+```
+
+Every write is persisted as soon as it is made, and nothing is rolled back if the method throws.

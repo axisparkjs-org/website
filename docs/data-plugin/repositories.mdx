@@ -103,6 +103,8 @@ const total = await this.users.count({ where: { status: 'active' } });
 const hasAdmin = await this.users.exists({ where: { status: 'admin' } });
 ```
 
+Every `BaseRepository` method joins the active transaction of the repository's data source. In your own repository methods, use the protected `entityRepository` and `entityManager` members so that they join transactions too. See [Transactions](./transactions.mdx).
+
 ## Implementation details
 
 The generated repository is a JavaScript `Proxy`. Existing class members and inherited `BaseRepository` methods are used normally. If a property is not implemented but its name matches one of the supported derived-query prefixes, the proxy returns an executable query function. Other missing properties remain `undefined`; the proxy deliberately does not expose a synthetic `then` method, so it is not accidentally treated as a Promise/thenable.
