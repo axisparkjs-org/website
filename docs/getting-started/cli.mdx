@@ -51,7 +51,7 @@ Templates are downloaded from the `templates/` folder of the AxiSpark.js reposit
 | --- | --- |
 | `default` | Basic application with a sample plugin. |
 | `http` | Express HTTP server with a `/api/example` controller. |
-| `http-security` | HTTP server with a demo authenticator, an admin authorization policy, and a protected route. The example credential is `Authorization: Demo admin`; adapt authentication to your identity provider. |
+| `http-security` | HTTP server with a demo `BearerAuthenticator`, an admin authorization policy, and a protected route. The example credential is `Authorization: Bearer admin-token`; adapt authentication to your identity provider. |
 | `scheduler` | Scheduler plugin with a job that logs every five seconds. |
 | `http-openapi` | HTTP server with a documented greeting response and an OpenAPI schema. The JSON document is available at `/api/openapi.json`. |
 

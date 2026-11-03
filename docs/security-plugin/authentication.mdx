@@ -4,7 +4,9 @@ sidebar_position: 2
 
 # Authentication
 
-Authentication is implemented by application-defined subclasses of `Authenticator`. An authenticator receives AxiSpark's `ExecutionContext`, reads credentials from the relevant transport context, validates them, and returns an identity value. This package does not select a token format or prescribe where identities come from.
+Authentication is implemented by application-defined subclasses of `Authenticator`. An authenticator receives AxiSpark's `ExecutionContext`, reads credentials from the relevant transport context, validates them, and returns an identity value. This package does not prescribe where identities come from.
+
+For Bearer tokens, Basic credentials, API keys and JSON Web Tokens, extend one of the [built-in authenticators](./built-in-authenticators): they read and parse the credential, so you only write how it becomes a principal. Extend `Authenticator` directly for other credentials.
 
 ## Implement an authenticator
 
@@ -20,14 +22,13 @@ export interface Principal {
 }
 
 @Injectable()
-export class BearerAuthenticator extends Authenticator {
+export class SessionAuthenticator extends Authenticator {
     async authenticate(context: ExecutionContext): Promise<Principal | undefined> {
         const request = (context as HttpContext).request;
-        const authorization = request.getHeader('authorization');
-        if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) return undefined;
+        const sessionId = request.getCookie('session_id');
+        if (!sessionId) return undefined;
 
-        const token = authorization.slice('Bearer '.length);
-        return this.identityService.verify(token);
+        return this.sessionService.findPrincipal(sessionId);
     }
 }
 ```
@@ -40,7 +41,7 @@ Return a truthy identity value (for example, a principal or claims object) to au
 
 The engine tries configured authenticators in order and stops at the first truthy result. That result is stored as `context.data`; the engine also sets `context.authenticated` and `context.authenticationMethod`. If every authenticator returns a falsy result, the execution remains unauthenticated. Exceptions from an authenticator propagate through the normal AxiSpark error pipeline.
 
-This ordered chain supports multiple credential mechanisms. For example, a bearer authenticator can be followed by an API-key authenticator. The first successful mechanism determines `context.data`; later authenticators do not overwrite it.
+This ordered chain supports multiple credential mechanisms. For example, a `BearerAuthenticator` can be followed by an `ApiKeyAuthenticator`. The first successful mechanism determines `context.data`; later authenticators do not overwrite it.
 
 ## Optional authentication
 
@@ -55,7 +56,7 @@ There are two levels of filtering:
 ```ts
 import { ExecutionTransport } from '@axisparkjs/engine';
 
-export class HttpBearerAuthenticator extends Authenticator {
+export class HttpSessionAuthenticator extends Authenticator {
     static readonly transports = [ExecutionTransport.Http];
     // ...
 }
