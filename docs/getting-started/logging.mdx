@@ -45,6 +45,31 @@ The logging system in AxiSpark.js supports the following levels, ordered from lo
     </tbody>
 </table>
 
+## Structured metadata
+
+Every level method accepts an optional `metadata` object with structured data about the entry. `error` and `fatal` receive it after the error, so the current calls keep working:
+
+```ts
+await logger.info('Request completed', { method: 'GET', path: '/users', status: 200, durationMs: 12 });
+await logger.error('Payment failed', error, { orderId });
+await logger.fatal('Database unreachable', undefined, { host: 'db.internal' });
+```
+
+Prefer metadata to values inside the message string: the `JsonFormatter` writes it as a `metadata` field, so log processors can filter the entries by its values.
+
+### Metadata bound to child loggers
+
+`child(scope, metadata?)` creates a logger with an additional scope and, optionally, metadata that is added to every entry it writes. Nested child loggers merge their metadata with the metadata of their parents, and the metadata passed to a level method overrides the bound values with the same key:
+
+```ts
+const requestLogger = logger.child('HttpPlugin', { requestId });
+
+await requestLogger.info('Route matched', { route: '/users/:id' });
+// metadata: { requestId, route: '/users/:id' }
+```
+
+The parent logger is not modified, so its entries do not include the metadata of its children.
+
 ## Logging Formatters
 
 AxiSpark.js allows you to configure the logging output format using formatters. Formatters define how log messages are structured and displayed. You can use built-in formatters or create your own custom formatters to suit your needs.
@@ -63,7 +88,7 @@ Here are the built-in formatters available in AxiSpark.js. In total are 5 built-
     <tbody>
         <tr>
             <td>`SimpleFormatter`</td>
-            <td>Outputs log messages in plain text format, which is suitable for console output and simple logging needs.</td>
+            <td>Outputs log messages in plain text format, which is suitable for console output and simple logging needs. The metadata is printed as JSON after the message.</td>
         </tr>
         <tr>
             <td>`PrettyFormatter`</td>
@@ -79,7 +104,7 @@ Here are the built-in formatters available in AxiSpark.js. In total are 5 built-
         </tr>
         <tr>
             <td>`TemplateFormatter`</td>
-            <td>Allows you to define your own custom formatter by providing a template string.</td>
+            <td>Allows you to define your own custom formatter by providing a template string with the `{timestamp}`, `{level}`, `{message}`, `{scopes}`, `{metadata}` and `{error}` placeholders.</td>
         </tr>
     </tbody>
 </table>
