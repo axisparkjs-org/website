@@ -11,7 +11,7 @@ In the Schedule Plugin, you can create jobs by 2 different ways. The first way i
 First, if you are going to use decorators, you will need to decorate your class with the `@Scheduler()` decorator. This decorator is used to mark a class as a scheduler, allowing it to contain job methods that can be scheduled and executed by the Schedule Plugin.
 
 ```ts title="scheduler-example.ts"
-import { Scheduler, Cron, Interval, Date, Timeout } from '@axispark/schedule';
+import { Scheduler, Cron, Interval, Date, Timeout } from '@axisparkjs/schedule';
 
 @Scheduler()
 export class SchedulerExample {
@@ -44,7 +44,7 @@ Sometimes, you may want to create jobs dynamically at runtime. The Schedule Plug
 
 ```ts title="dynamic-job-example.ts"
 import { Injectable } from '@nestjs/di';
-import { SchedulerService } from '@axispark/schedule';
+import { SchedulerService } from '@axisparkjs/schedule';
 
 @Injectable()
 export class DynamicJobExample {
