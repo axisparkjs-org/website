@@ -17,7 +17,7 @@ HttpPluginOptionsFactory.create({
 });
 ```
 
-`ttl` is the window duration in milliseconds, and `limit` is the maximum number of requests from one IP address to one endpoint during that window. If `rateLimitOptions` is omitted, the defaults are 60 seconds and 100 requests. A message callback receives the milliseconds remaining until the oldest request expires.
+`ttl` is the window duration in milliseconds, and `limit` is the maximum number of requests from one IP address to one endpoint during that window. The limit applies to the route, not to the requested URL: `GET /users/1` and `GET /users/2?active=true` count against the same limit of `GET /users/:id`. If `rateLimitOptions` is omitted, the defaults are 60 seconds and 100 requests. A message callback receives the milliseconds remaining until the oldest request expires.
 
 Use `@RateLimit()` on a controller or handler to override those defaults. Partial handler options use the global defaults for values they omit:
 
