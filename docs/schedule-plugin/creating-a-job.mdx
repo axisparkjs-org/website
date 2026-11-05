@@ -43,8 +43,8 @@ export class SchedulerExample {
 Sometimes, you may want to create jobs dynamically at runtime. The Schedule Plugin provides the `SchedulerService` for this purpose. You can use the `startJob` method of the `SchedulerService` to create and start jobs dynamically. There are 4 different job definitions that you can use to create jobs dynamically: `CronJobDefinition`, `IntervalJobDefinition`, `DateJobDefinition`, and `TimeoutJobDefinition`. Each job definition requires a unique name, a schedule (cron expression, interval duration, date, or timeout duration), and a callback function that contains the logic to be executed when the job runs.
 
 ```ts title="dynamic-job-example.ts"
-import { Injectable } from '@nestjs/di';
-import { SchedulerService } from '@axisparkjs/schedule';
+import { Injectable } from '@axisparkjs/di';
+import { CronJobDefinition, DateJobDefinition, IntervalJobDefinition, SchedulerService, TimeoutJobDefinition } from '@axisparkjs/schedule';
 
 @Injectable()
 export class DynamicJobExample {
