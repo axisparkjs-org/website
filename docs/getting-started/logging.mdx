@@ -153,7 +153,7 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`HttpTransporter`</td>
-            <td>Sends log messages to a specified HTTP endpoint.</td>
+            <td>Sends log messages to a specified HTTP endpoint as JSON, with the `name`, `message`, `stack` and `cause` of the logged error.</td>
         </tr>
         <tr>
             <td>`MemoryTransporter`</td>
