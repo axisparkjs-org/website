@@ -140,39 +140,39 @@ Transporters are responsible for sending log messages to their final destination
     </thead>
     <tbody>
         <tr>
-            <td>`ConsoleTransporter`</td>
-            <td>Sends log messages to the console (stdout).</td>
+            <td>`ConsoleTransport`</td>
+            <td>Sends log messages to the console with `console.log`, so they are written to the standard output (`stdout`).</td>
         </tr>
         <tr>
-            <td>`DailyFileTransporter`</td>
+            <td>`DailyFileTransport`</td>
             <td>Sends log messages to a specified file, creating a new file each day.</td>
         </tr>
         <tr>
-            <td>`FileTransporter`</td>
+            <td>`FileTransport`</td>
             <td>Sends log messages to a specified file.</td>
         </tr>
         <tr>
-            <td>`HttpTransporter`</td>
+            <td>`HttpTransport`</td>
             <td>Sends log messages to a specified HTTP endpoint as JSON, with the `name`, `message`, `stack` and `cause` of the logged error.</td>
         </tr>
         <tr>
-            <td>`MemoryTransporter`</td>
+            <td>`MemoryTransport`</td>
             <td>Sends log messages to memory.</td>
         </tr>
         <tr>
-            <td>`NullTransporter`</td>
+            <td>`NullTransport`</td>
             <td>Discards log messages, effectively disabling logging.</td>
         </tr>
         <tr>
-            <td>`RotatingFileTransporter`</td>
+            <td>`RotatingFileTransport`</td>
             <td>Sends log messages to a specified file, rotating the file when it reaches a certain size or age.</td>
         </tr>
         <tr>
-            <td>`StreamTransporter`</td>
-            <td>Sends log messages to a specified writable stream.</td>
+            <td>`StreamTransport`</td>
+            <td>Sends log messages to a specified writable stream, such as `process.stderr`.</td>
         </tr>
         <tr>
-            <td>`WebhookTransporter`</td>
+            <td>`WebhookTransport`</td>
             <td>Sends log messages to a webhook endpoint.</td>
         </tr>
     </tbody>
@@ -212,3 +212,32 @@ AxiSparkFactory.create({
 ```
 
 > You can add multiple transporters to the `logTransports` array, allowing you to send log messages to multiple destinations simultaneously. Each transporter can have its own configuration, including the minimum logging level and formatter.
+
+### Default transport
+
+When `logTransports` is not set, the application uses a single `ConsoleTransport` with the `LogLevel.Trace` minimum level and the `SimpleFormatter`, which is equivalent to:
+
+```ts title="app.ts"
+AxiSparkFactory.create({
+    logTransports: [new ConsoleTransport({ minLevel: LogLevel.Trace, formatter: new SimpleFormatter() })]
+});
+```
+
+Every entry, including the banner, is written to the standard output. Set `logTransports` to change the level, the format or the destination of the logs.
+
+### Writing logs to stderr
+
+Some applications must keep the standard output free, because it carries data that other programs read. The main case is the [MCP stdio transport](../mcp-plugin/installation#4-use-the-stdio-transport-optional), where the standard output carries the protocol messages and any other output breaks the connection. Write the logs to `stderr` with a `StreamTransport` over `process.stderr`:
+
+```ts title="app.ts"
+import { AxiSparkFactory } from '@axisparkjs/core';
+import { LogLevel, SimpleFormatter, StreamTransport } from '@axisparkjs/logger';
+
+export const app = AxiSparkFactory.create({
+    name: 'Users App',
+    basePath: __dirname,
+    logTransports: [new StreamTransport({ stream: process.stderr, minLevel: LogLevel.Info, formatter: new SimpleFormatter() })]
+});
+```
+
+Do not use a `ConsoleTransport` in these applications, because it writes to the standard output. The framework does not change the transports for you: the configuration of `logTransports` is always the one you provide.

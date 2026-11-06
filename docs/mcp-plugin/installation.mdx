@@ -69,8 +69,15 @@ app.use(McpPlugin, McpPluginOptionsFactory.create({ transport: 'stdio' }));
 ```
 
 :::warning
-With the stdio transport, the standard output carries the protocol messages. Anything else written to it breaks the connection, so disable the banner and send the logs to `stderr`, as in the example. The `ConsoleTransport` writes to the standard output.
+With the stdio transport, the standard output carries the protocol messages. Anything else written to it breaks the connection, so send the logs to `stderr`, as in the example. When `logTransports` is not set, the application uses a `ConsoleTransport`, which writes to the standard output. See [Writing logs to stderr](../getting-started/logging#writing-logs-to-stderr).
 :::
+
+The banner is written through the logger, so it only breaks the protocol when a transport writes to the standard output. Disabling it with `banner: false` is still recommended, because it is not useful for the clients and keeps the logs shorter.
+
+Other code that writes to the standard output also breaks the connection:
+
+- `console.log`, `console.info` and `console.debug` in tools, resources, prompts or services. Inject the `Logger` instead, so the entries go through the configured transports.
+- Libraries that print to the standard output. Check their options to disable that output or redirect it to `stderr`.
 
 ## Configuration options
 
