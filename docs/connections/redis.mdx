@@ -1,0 +1,154 @@
+---
+sidebar_position: 3
+---
+
+# Redis
+
+The Redis plugin creates and manages named Redis connections for your application, so caching, shared state, locks or pub/sub clients follow the plugin lifecycle: they are configured in the plugin options, injected by name, reported by the health engine and closed when the application stops. It is built on [`node-redis`](https://github.com/redis/node-redis) (the `redis` package), so client options, commands and reconnection behavior follow that library. See its [documentation](https://redis.io/docs/latest/develop/clients/nodejs/) for details on using the client directly.
+
+## Install
+
+Install the Redis plugin and the `redis` client in your project:
+
+```sh
+npm install @axisparkjs/redis redis
+```
+
+## Configure connections
+
+Register `RedisPlugin` with options created by `RedisPluginOptionsFactory`. Add one entry for each connection, with a unique `name`, a Redis `url`, and optional client `options`:
+
+```ts title="app.ts"
+import { AxiSparkFactory } from '@axisparkjs/core';
+import { RedisPlugin, RedisPluginOptionsFactory } from '@axisparkjs/redis';
+
+export const app = AxiSparkFactory.create({
+    name: 'My application',
+    basePath: __dirname
+});
+
+app.use(
+    RedisPlugin,
+    RedisPluginOptionsFactory.create({
+        connections: [
+            { name: 'CACHE', url: 'redis://localhost:6379/0' },
+            { name: 'LOCKS', url: 'redis://localhost:6379/1', options: { socket: { connectTimeout: 5000 } } }
+        ]
+    })
+);
+```
+
+The `url` follows the `redis[s]://[[username][:password]@][host][:port][/db-number]` format. Use `rediss://` to connect with TLS. The optional `options` object is passed to `createClient`, so it accepts the socket, TLS, database and reconnect strategy settings of `node-redis`; refer to its [client configuration](https://github.com/redis/node-redis/blob/master/docs/client-configuration.md) for the available settings. The `url` of the connection takes precedence over a `url` inside `options`.
+
+The plugin options are:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `connections` | `RedisConnectionOptions[]` | — | The named connections, each one with a `name`, a `url` and optional client `options`. |
+| `healthChecks` | `boolean` | `true` | Whether a health check is registered for each connection. |
+| `failOnConnectError` | `boolean` | `false` | Whether the application fails to start when a connection cannot be established. |
+
+Connection names must be unique because the name is used to retrieve and inject a connection. Use CONSTANT_CASE names, as in the other connection plugins. Two connections with the same name make the plugin registration fail with a clear error.
+
+## Connection lifecycle
+
+The plugin creates and connects every client when it is registered, and closes them when the application stops. Closing a client waits for its pending commands.
+
+By default, the clients connect in the background: the application starts even when Redis is not available, the clients keep reconnecting with their reconnect strategy, and their health checks report them as `Unhealthy` until they are ready. Set `failOnConnectError: true` to wait for every connection instead: the first connection error stops the client and makes the application fail to start.
+
+```ts title="app.ts"
+app.use(
+    RedisPlugin,
+    RedisPluginOptionsFactory.create({
+        connections: [{ name: 'CACHE', url: 'redis://localhost:6379/0' }],
+        failOnConnectError: true
+    })
+);
+```
+
+The plugin logs the events of every client with its logger:
+
+| Event | Level | Message |
+| --- | --- | --- |
+| `ready` | `info` | `Connection '<name>' established` |
+| `reconnecting` | `warn` | `Connection '<name>' reconnecting` |
+| `error` | `error` | `Connection '<name>' encountered an error` |
+| `end` | `info` | `Connection '<name>' finished` |
+
+:::note
+`node-redis` stops the process when a client emits an `error` event without listeners. The plugin always registers an `error` listener, so connection errors are logged and never stop the process.
+:::
+
+## Retrieve a connection
+
+There are two ways to access configured connections.
+
+### Inject a named connection
+
+Use `@InjectRedisConnection(name)` on a constructor parameter to inject one connection by its configured name. The injected value is the `node-redis` client:
+
+```ts title="session-cache.ts"
+import { Injectable } from '@axisparkjs/di';
+import { InjectRedisConnection } from '@axisparkjs/redis';
+import { RedisClientType } from 'redis';
+
+@Injectable()
+export class SessionCache {
+    constructor(@InjectRedisConnection('CACHE') private readonly redis: RedisClientType) {}
+
+    async set(id: string, value: string): Promise<void> {
+        await this.redis.set(`session:${id}`, value, { expiration: { type: 'EX', value: 60 } });
+    }
+
+    async get(id: string): Promise<string | null> {
+        return await this.redis.get(`session:${id}`);
+    }
+}
+```
+
+The decorator resolves the name configured in `connections`. Its underlying dependency injection token is `REDIS_CONNECTION_<name>`, which `redisConnectionToken(name)` returns; you can also use the standard `@Inject(new InjectionToken('REDIS_CONNECTION_CACHE'))` form if needed.
+
+### Use the connection manager
+
+Inject `RedisConnectionManager` to look up one connection or retrieve a copy of the map containing all configured connections:
+
+```ts
+import { Injectable } from '@axisparkjs/di';
+import { RedisConnectionManager } from '@axisparkjs/redis';
+
+@Injectable()
+export class ConnectionInspector {
+    constructor(private readonly connections: RedisConnectionManager) {}
+
+    inspect(): void {
+        const cache = this.connections.getConnection('CACHE');
+        const allConnections = this.connections.getAllConnections();
+
+        console.log(cache?.isReady);
+        console.log([...allConnections.keys()]);
+    }
+}
+```
+
+`getConnection(name)` returns the client for that name, or `undefined` if no connection with that name is configured. `getAllConnections()` returns a new `Map<string, RedisClientType>` containing all configured connections.
+
+## Health checks
+
+The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `redis:<name>` for each configured connection. It sends a `PING` and reports its latency in `latencyMs`. When the client is not ready, for example while it is reconnecting, the check reports `Unhealthy` without sending the `PING`, because `node-redis` would queue it until the client reconnects. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.
+
+With the [HTTP plugin](../http-plugin/installation) and `healthChecks: true`, `GET /health` includes the `redis:<name>` checks.
+
+## Pub/Sub
+
+A client in subscriber mode cannot run other commands, so configure a dedicated connection for each subscriber:
+
+```ts
+RedisPluginOptionsFactory.create({
+    connections: [
+        { name: 'PUBLISHER', url: 'redis://localhost:6379' },
+        { name: 'SUBSCRIBER', url: 'redis://localhost:6379' }
+    ]
+});
+```
+
+Connections that share a URL are independent clients.

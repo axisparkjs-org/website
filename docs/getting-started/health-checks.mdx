@@ -75,6 +75,7 @@ The connection plugins register one health check per configured connection:
 | [Data Plugin](../data-plugin/installation) | `data:<name>` | Runs `SELECT 1` on SQL data sources (`SELECT 1 FROM DUAL` on Oracle) and `ping` on MongoDB. |
 | [Kafka](../connections/kafka) | `kafka:<name>` | Connects an admin client, without retries, and describes the cluster. |
 | [RabbitMQ](../connections/rabbitmq) | `rabbitmq:<name>` | Checks that the connection is open and reports its number of channels. |
+| [Redis](../connections/redis) | `redis:<name>` | Sends a `PING` and reports its latency. Reports `Unhealthy` without sending it when the client is not ready. |
 
 If a connection drops after the application has started, its check reports `Unhealthy`, and so does the application. The built-in checks are critical and use the default timeout. Disable them with the `healthChecks: false` plugin option:
 
