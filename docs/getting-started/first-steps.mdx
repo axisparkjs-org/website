@@ -90,6 +90,34 @@ To create an AxiSpark.js application, we use the `AxiSparkFactory.create()` meth
 
 > The `app.init()` method initializes the application, setting up any necessary resources and configurations. The `app.run()` method starts the application, allowing it to handle requests and perform its intended functionality. Finally, the `app.destroy()` method cleans up any resources and performs necessary teardown operations when the application is shutting down.
 
+### Files loaded by the scanner
+
+When the application is initialized, the scanner imports the `.js` and `.ts` files under `basePath`, so the decorated classes (controllers, jobs, repositories, MCP servers…) are registered without importing them by hand. Importing a file runs its top-level code, so these files are never loaded:
+
+- The `node_modules`, `dist` and `coverage` folders.
+- The declaration files (`*.d.ts`).
+- The bootstrap files (`*.bootstrap.{js,ts}`), such as `index.bootstrap.ts`.
+- The test files (`*.spec.{js,ts}` and `*.test.{js,ts}`).
+
+Use the `scanner` option to choose the loaded files without changing `basePath`. The patterns are [fast-glob](https://github.com/mrmlnc/fast-glob) patterns relative to `basePath`:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `include` | `['**/*.{js,ts}']` | Patterns of the files to load. |
+| `exclude` | `[]` | Patterns of the files to ignore. They are added to the default exclusions above. |
+
+```ts title="app.ts"
+export const app = AxiSparkFactory.create({
+    name: 'Example App',
+    basePath: __dirname,
+    scanner: { exclude: ['**/scripts/**', '**/app-*.ts'] }
+});
+```
+
+Exclude the files that must not be imported, such as scripts, build or tool folders under `basePath`, or other application files that create applications at their top level (`app-express.ts`, `app-fastify.ts`…).
+
+> The scanner logs the number of loaded files at `debug` level and each file at `trace` level. Set the `minLevel` of a transport to `LogLevel.Trace` to see which files are imported.
+
 ## Development
 
 ### Running the Application

@@ -79,6 +79,8 @@ Other code that writes to the standard output also breaks the connection:
 - `console.log`, `console.info` and `console.debug` in tools, resources, prompts or services. Inject the `Logger` instead, so the entries go through the configured transports.
 - Libraries that print to the standard output. Check their options to disable that output or redirect it to `stderr`.
 
+To launch the stdio application, keep its own bootstrap file, such as `stdio.bootstrap.ts`, next to the other files. The scanner never imports the bootstrap files (`*.bootstrap.{js,ts}`), so it does not start the stdio application by accident. If several application files create applications at their top level, exclude them with the [`scanner` option](../getting-started/first-steps#files-loaded-by-the-scanner).
+
 ## Configuration options
 
 `McpPluginOptionsFactory.create()` accepts these options:
