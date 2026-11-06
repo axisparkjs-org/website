@@ -117,6 +117,11 @@ export interface FileUploadOptions {
 }
 
 /**
+ * The proxies whose `X-Forwarded-For` header is trusted to resolve the client address of a request.
+ */
+export type TrustProxyOption = boolean | number | string | string[];
+
+/**
  * Options for configuring the HTTP plugin.
  */
 export interface HttpPluginOptions extends PluginOptions {
@@ -128,6 +133,10 @@ export interface HttpPluginOptions extends PluginOptions {
      * The base path for the HTTP server.
      */
     basePath: string;
+    /**
+     * The proxies trusted to resolve the client address from the `X-Forwarded-For` header. Defaults to `false`.
+     */
+    trustProxy?: TrustProxyOption;
     /**
      * The HTTP adapter to use. Express or Fastify are supported.
      */
@@ -226,5 +235,28 @@ export interface HttpPluginOptions extends PluginOptions {
     logErrors?: boolean;
 }
 ```
+
+### Running behind a proxy
+
+Behind a reverse proxy or a load balancer, the address of the socket is the address of the proxy, not the address of the client. Set `trustProxy` so that `request.ip` returns the client address from the `X-Forwarded-For` header:
+
+```ts title="app.ts"
+app.use(HttpPlugin, HttpPluginOptionsFactory.create({ port: 3000, trustProxy: 1 }));
+```
+
+`trustProxy` accepts the same values in the Express and Fastify adapters:
+
+| Value | Description |
+| --- | --- |
+| `false` | Default. No proxy is trusted, and `request.ip` is the address of the socket. |
+| `true` | Every proxy is trusted, and `request.ip` is the leftmost address of `X-Forwarded-For`. Use it only when the application cannot be reached without the proxy, because clients can send any value in the header. |
+| A number | The number of proxies between the client and the application. For example, `1` when there is a single load balancer in front of the application. |
+| A string or string array | Addresses or subnets of the trusted proxies, such as `'10.0.0.0/8'`, `['10.0.0.1', '10.0.0.2']` or the `'loopback'`, `'linklocal'` and `'uniquelocal'` names. A string can contain several values separated by commas. |
+
+The value is passed to the `trust proxy` setting of Express and to the `trustProxy` server option of Fastify. The [host routing](./controllers) of the controllers and the versioning keep reading the `Host` and version headers of the request, so `trustProxy` does not change them.
+
+:::warning
+Trust only the proxies you control. With `trustProxy` set, a client that reaches the application without going through a trusted proxy can send its own `X-Forwarded-For` header and choose the address that the application sees.
+:::
 
 > Set `healthChecks: true` to expose the `/health`, `/health/liveness` and `/health/readiness` endpoints. Check the [Health Checks](../getting-started/health-checks) page for more information.

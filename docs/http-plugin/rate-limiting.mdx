@@ -61,3 +61,14 @@ export class HealthController {
 Requests over the limit receive `429 Too Many Requests`, a JSON body containing `message`, and a `Retry-After` header in seconds. The default message is `Too many requests. Please try again later.` Decorators have no effect while `rateLimit` is `false`.
 
 The in-memory store is local to the application process. It does not share limits across multiple server instances.
+
+## Behind a proxy
+
+Limits are applied per client IP address, which is the value of `request.ip`. Behind a reverse proxy or a load balancer, that address is the address of the proxy unless the [`trustProxy` option](./installation#running-behind-a-proxy) is set, so every client behind the same proxy shares one limit and a few clients can block the rest. Set `trustProxy` when the application runs behind a proxy:
+
+```ts
+HttpPluginOptionsFactory.create({
+    trustProxy: 1,
+    rateLimit: true
+});
+```
