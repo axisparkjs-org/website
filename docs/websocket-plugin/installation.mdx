@@ -56,5 +56,8 @@ When using the HTTP Plugin server, its port is used; the WebSocket `port` option
 | `connectTimeout` | `number` | `5000` | Milliseconds allowed for a client to connect to a namespace before it is disconnected. |
 | `serveClient` | `boolean` | `true` | Whether Socket.IO serves its client files. |
 | `useHttpPluginServer` | `boolean` | `false` | Whether to attach the adapter to the HTTP Plugin server. |
+| `timeout` | `boolean` | `false` | Whether every event has a default timeout. See [Timeouts](./responses#timeouts). |
+| `timeoutOptions.time` | `number` | `5000` | Default timeout of the events in milliseconds, used when `timeout` is `true`. |
+| `timeoutOptions.message` | `string \| ((time: number) => string)` | `'Request timed out after <time>ms'` | Message acknowledged to the client when an event times out. |
 
 For an example of declaring namespaces and handling events, see [WebSocket events](./events).

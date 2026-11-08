@@ -20,7 +20,9 @@ The time of `@Timeout(time)` must be a number of milliseconds greater than `0`. 
 
 The engine also provides a default timeout for all transports (5000ms) in case you enable the timeout feature but do not specify a timeout for a specific transport or step.
 
-> Important, the `@Timeout()` and `@NoTimeout()` decorators will only work if the transport has enabled the timeout feature.
+> Important, the `@Timeout()` and `@NoTimeout()` decorators will only work if the transport has enabled the timeout feature. The WebSocket and MCP plugins always handle the `@Timeout()` of their handlers, even without a default timeout.
+
+When an execution times out on a transport that has no timeout handler registered, the engine throws an `ExecutionTimeoutError` (`Execution timed out after <time>ms`). The error filters of the transport handle it like any other error, so a timeout never ends with an empty response.
 
 ## Example of Timeouts in Http Transport
 
