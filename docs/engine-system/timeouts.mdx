@@ -8,6 +8,16 @@ The engine also supports timeouts for an execution context. This is, when a exec
 
 Each transport has its own timeout configuration, enabling you to set different timeouts for different transports. The timeout can be configured in the transport options when creating the transport instance. Also, when using the `@Timeout()` decorator, you can specify a timeout for a specific step or method. This allows you to have fine-grained control over the timeout behavior of your engine steps. The `@NoTimeout()` decorator can be used to disable the timeout for a specific step or method, even if the transport has a timeout configured.
 
+The timeout of a handler is resolved in this order, and the first one defined wins:
+
+1. The `@Timeout()` or `@NoTimeout()` of the method.
+2. The `@Timeout()` or `@NoTimeout()` of its class.
+3. The default timeout of the transport.
+
+So `@NoTimeout()` on a method disables a `@Timeout()` of its class and the default timeout of the transport, and `@NoTimeout()` on a class disables the timeout of all its handlers, unless a method has its own `@Timeout()`. A handler without a timeout runs to the end, whatever the default timeout of the transport.
+
+The time of `@Timeout(time)` must be a number of milliseconds greater than `0`. `@Timeout(0)` or a negative time throws an error when the decorator is applied, so the mistake is visible at startup. Use `@NoTimeout()` to disable the timeout.
+
 The engine also provides a default timeout for all transports (5000ms) in case you enable the timeout feature but do not specify a timeout for a specific transport or step.
 
 > Important, the `@Timeout()` and `@NoTimeout()` decorators will only work if the transport has enabled the timeout feature.
@@ -43,5 +53,16 @@ export class TimeoutController {
     @Timeout(10) // 10 milliseconds
     @Get('throw-timeout')
     async exampleThrowTimeout() {...}
+}
+
+@NoTimeout()
+@Controller('reports')
+export class ReportController {
+    @Get()
+    async generateReport() {...} // No timeout
+
+    @Get('summary')
+    @Timeout(1000) // The method timeout takes precedence over the @NoTimeout() of the class
+    async generateSummary() {...}
 }
 ```
