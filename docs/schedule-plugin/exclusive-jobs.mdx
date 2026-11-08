@@ -48,6 +48,8 @@ With the default `MemoryStore()`, the locks are local to the process, so an excl
 
 Each occurrence of the job runs on only one instance. The lock of an occurrence is **not released** when the job ends: it expires after its `ttl`. Otherwise, an instance whose clock is slightly behind would acquire it again after the release and run the same occurrence twice.
 
+For the same reason, if the application stops and the job is cut in the middle of an occurrence, that occurrence is not run by another instance.
+
 The lock is identified by the job name and its occurrence:
 
 | Job | Occurrence | Default `ttl` |
@@ -61,7 +63,16 @@ The lock is identified by the job name and its occurrence:
 
 The job never runs on two instances at the same time, but several instances can run it one after another. The lock is identified by the job name, it is extended every half of its `ttl` while the job runs, and it is released when the job ends. The default `ttl` is 30 seconds.
 
-Use it for long jobs that must not run in parallel. If an instance stops while it runs the job, the lock expires after its `ttl` and another instance can run it.
+Use it for long jobs that must not run in parallel. When the application stops, the Schedule Plugin [waits for the running jobs](./managing-a-job#stopping-the-scheduler): a job that ends during the shutdown releases its lock, so another instance can run it right away. A job that is still running when the `shutdownTimeout` ends keeps its lock, so another instance does not start it while it runs, and its lock is no longer extended: it expires after its `ttl` once the process exits. If an instance is killed while it runs the job, the lock also expires after its `ttl`.
+
+## Order of the plugins
+
+The plugins stop in reverse registration order. Register the plugin of the lock store, such as the `RedisPlugin`, **before** the `SchedulePlugin`, so the scheduler waits for its jobs and releases their locks before the lock store is closed:
+
+```ts
+app.use(RedisPlugin, RedisPluginOptionsFactory.create({ connections: [{ name: 'MAIN', url: 'redis://localhost:6379' }] }));
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: RedisStore('MAIN') }));
+```
 
 ## Errors
 

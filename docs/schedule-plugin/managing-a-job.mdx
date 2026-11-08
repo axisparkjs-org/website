@@ -19,12 +19,54 @@ If you want to retrieve a job that has been created using either decorators or t
 The `SchedulerService` provides the following methods for managing jobs:
 
 - `startJob(job: string | JobDefinition): Promise<void>`: Starts a job that has been created using the `SchedulerService`. You can use this method to start a job that has been stopped or to start a job that has been created but not yet started.
-- `stopJob(job: string | JobDefinition): Promise<void>`: Stops a job that is currently running. You can use this method to stop a job that is no longer needed or to temporarily pause a job.
+- `stopJob(job: string | JobDefinition, options?: { timeout?: number }): Promise<void>`: Stops a job that is currently running. You can use this method to stop a job that is no longer needed or to temporarily pause a job. No new execution starts, the signal of the running execution is aborted, and the promise resolves when that execution ends. With a `timeout`, it waits at most that time in milliseconds.
+- `stopAllJobs(options?: { timeout?: number }): Promise<void>`: Stops every job, in the same way.
+- `isJobRunning(job: string | JobDefinition): boolean`: Whether the job is scheduled.
+- `isJobExecuting(job: string | JobDefinition): boolean`: Whether an execution of the job is in progress.
 
-> `SchedulerService` offers more methods for managing jobs, such as `isJobRunning` or `stopAllJobs`. Please, check the API documentation for more information on the available methods and their usage.
+> `SchedulerService` offers more methods for managing jobs. Please, check the API documentation for more information on the available methods and their usage.
+
+> A job that stops itself, for example with `await this.schedulerService.stopJob('report')` inside the `report` job, does not wait for its own execution.
 
 ## Modifying a Job
 
 You can also modify a job that has been created using either decorators or the `SchedulerService`. To modify a job, you can use the `update` methods of each job definition. The `update` methods allow you to change the schedule (cron expression, interval duration, date, or timeout duration) of the job. The change will take effect in the next execution cycle, and the job will be rescheduled according to the new schedule.
 
 > If you want to start the new schedule immediately, you can stop the job and start it again using the `stopJob` and `startJob` methods of the `SchedulerService`. This will ensure that the job is executed according to the new schedule without waiting for the next execution cycle.
+
+## Stopping the scheduler
+
+When the application stops, for example with `SIGTERM`, the Schedule Plugin stops gracefully:
+
+1. It stops scheduling the jobs, so no new execution starts.
+2. It aborts the signal of the running jobs, so they can end early.
+3. It waits for the running jobs, up to the `shutdownTimeout` option (25 seconds by default). `0` does not wait.
+
+The plugins stop in reverse registration order, so the next plugins, such as the Redis or data plugins, are only stopped after the jobs end. When the timeout ends first, a warning with the names of the jobs that are still running is logged, and the shutdown goes on.
+
+```ts
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ shutdownTimeout: 20_000 }));
+```
+
+> The default timeout is lower than the 30 seconds that orchestrators such as Kubernetes wait by default (`terminationGracePeriodSeconds`) before killing the process, so the warning is always logged. Keep `shutdownTimeout` lower than the grace period of your orchestrator.
+
+### Ending a long job early
+
+Every job receives an `AbortSignal` as its first argument. It is aborted when the job is stopped, with `stopJob()`, `stopAllJobs()` or when the application stops, so a long job can stop between its steps. Jobs that do not need it can ignore it:
+
+```ts
+@Scheduler()
+export class CatalogScheduler {
+    @Interval({ value: 60_000, exclusive: { mode: 'no-overlap' } })
+    async syncCatalog(signal: AbortSignal) {
+        for (const page of pages) {
+            if (signal.aborted) return;
+            await this.sync(page);
+        }
+    }
+}
+```
+
+The job functions of the dynamic job definitions receive it too: `new IntervalJobDefinition('sync', 60_000, async (signal) => {...})`.
+
+> The jobs are called directly, without the execution engine, so the parameter decorators are not resolved for them: the signal is always the first argument.

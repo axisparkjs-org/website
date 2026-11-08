@@ -100,6 +100,8 @@ interface Lock {
 }
 ```
 
+> Register the plugin of a shared store, such as the `RedisPlugin`, before the plugins that use it. The plugins stop in reverse registration order, so the Schedule Plugin can [wait for its jobs](../schedule-plugin/managing-a-job#stopping-the-scheduler) and release their locks before the store is closed.
+
 ### `cache`
 
 Stores values with an optional time to live. Shared stores serialize the values with JSON, so use values that can be converted to JSON. `MemoryStore()` keeps the values as they are:

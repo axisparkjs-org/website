@@ -31,15 +31,16 @@ app.use(SchedulePlugin);
 
 ## 3. Configure the Schedule Plugin
 
-The Schedule Plugin works without configuration. Its only option is `lockStore`, the [store](../getting-started/stores) of the locks of the [exclusive jobs](./exclusive-jobs). It defaults to `MemoryStore()`, which only coordinates the jobs of one process. Pass the options with `SchedulePluginOptionsFactory`:
+The Schedule Plugin works without configuration. Its `lockStore` option is the [store](../getting-started/stores) of the locks of the [exclusive jobs](./exclusive-jobs). It defaults to `MemoryStore()`, which only coordinates the jobs of one process. Its `shutdownTimeout` option is the maximum time to wait for the running jobs when the application stops: see [Stopping the scheduler](./managing-a-job#stopping-the-scheduler). Pass the options with `SchedulePluginOptionsFactory`:
 
 ```ts
 import { RedisStore } from '@axisparkjs/redis';
 import { SchedulePlugin, SchedulePluginOptionsFactory } from '@axisparkjs/schedule';
 
-app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: RedisStore('MAIN') }));
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: RedisStore('MAIN'), shutdownTimeout: 20_000 }));
 ```
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `lockStore` | `StoreProvider<'lock'>` | `MemoryStore()` | The provider of the lock store of the exclusive jobs, called when the plugin starts. |
+| `shutdownTimeout` | `number` | `25000` | The maximum time to wait for the running jobs when the application stops, in milliseconds. `0` does not wait. |
