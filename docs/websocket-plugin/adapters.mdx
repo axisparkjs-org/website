@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # Adapters
@@ -19,6 +19,8 @@ app.use(WebSocketPlugin, WebSocketPluginOptionsFactory.create({
 ```
 
 To provide a different transport, implement the `WebSocketAdapter` interface and pass its class as the `adapter` option. The adapter receives the generated `WebSocketEventDefinition[]` through `registerEvents`. Each definition includes its namespace, event name, and handler. It can call the handler with a context containing the current `connection` and, for message events, the `message`.
+
+The `connection` implements `WebSocketConnection`, including `remoteAddress`, the address of the client, which the [rate limits](./rate-limiting) use to identify it. Return `undefined` when the transport does not know it, and resolve it with the `trustProxy` option of the plugin behind proxies.
 
 ```ts
 import { WebSocketPlugin } from '@axisparkjs/websocket';

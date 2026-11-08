@@ -46,6 +46,7 @@ The `context` contains the dependency injection `container` and the `logger` of 
 | Plugin | Option | Kind | Default |
 | --- | --- | --- | --- |
 | HTTP | `rateLimitOptions.store` | `rate-limit` | `MemoryStore()` |
+| WebSocket | `rateLimitOptions.store` | `rate-limit` | `MemoryStore()` |
 | Schedule | `lockStore` | `lock` | `MemoryStore()` |
 
 The `cache` kind has no consumer in the framework yet. Your own plugins can create a cache store from a provider, as shown in [using stores in your own plugins](#using-stores-in-your-own-plugins).

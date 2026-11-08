@@ -59,5 +59,8 @@ When using the HTTP Plugin server, its port is used; the WebSocket `port` option
 | `timeout` | `boolean` | `false` | Whether every event has a default timeout. See [Timeouts](./responses#timeouts). |
 | `timeoutOptions.time` | `number` | `5000` | Default timeout of the events in milliseconds, used when `timeout` is `true`. |
 | `timeoutOptions.message` | `string \| ((time: number) => string)` | `'Request timed out after <time>ms'` | Message acknowledged to the client when an event times out. |
+| `rateLimit` | `boolean` | `false` | Whether to apply rate limits to the events. See [Rate limiting](./rate-limiting). |
+| `rateLimitOptions` | `WebSocketRateLimitOptions` | `ttl: 60000`, `limit: 100` | Default limits (`ttl`, `limit`), `message`, how the clients are identified (`by`) and `store`. |
+| `trustProxy` | `boolean \| number \| string \| string[]` | `false` | Proxies trusted to resolve the client address from `X-Forwarded-For`. With `useHttpPluginServer`, defaults to the `trustProxy` of the HTTP Plugin. |
 
 For an example of declaring namespaces and handling events, see [WebSocket events](./events).

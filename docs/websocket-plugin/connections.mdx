@@ -35,7 +35,8 @@ The connection interface exposes:
 
 | Property or method | Description |
 | --- | --- |
-| `id` | Unique connection identifier. |
+| `id` | Unique connection identifier. It changes when the client reconnects. |
+| `remoteAddress` | Address of the remote client, when the adapter knows it. Behind trusted proxies (`trustProxy` option), it is resolved from the `X-Forwarded-For` header of the handshake. |
 | `namespace` | Namespace for this connection, when supported by the adapter. |
 | `rooms` | Rooms the connection currently belongs to, when supported by the adapter. |
 | `connected` | Whether the underlying connection is still open. |
