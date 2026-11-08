@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Redis
 
-The Redis plugin creates and manages named Redis connections for your application, so caching, shared state, locks or pub/sub clients follow the plugin lifecycle: they are configured in the plugin options, injected by name, reported by the health engine and closed when the application stops. It is built on [`node-redis`](https://github.com/redis/node-redis) (the `redis` package), so client options, commands and reconnection behavior follow that library. See its [documentation](https://redis.io/docs/latest/develop/clients/nodejs/) for details on using the client directly.
+The Redis plugin creates and manages named Redis connections for your application, so caching, shared state, locks or pub/sub clients follow the plugin lifecycle: they are configured in the plugin options, injected by name, reported by the health engine and closed when the application stops. It also provides [Redis stores](#stores) to share the rate limits and the locks of the exclusive jobs between the instances of the application. It is built on [`node-redis`](https://github.com/redis/node-redis) (the `redis` package), so client options, commands and reconnection behavior follow that library. See its [documentation](https://redis.io/docs/latest/develop/clients/nodejs/) for details on using the client directly.
 
 ## Install
 
@@ -126,6 +126,34 @@ export class ConnectionInspector {
 The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `redis:<name>` for each configured connection. It sends a `PING` and reports its latency in `latencyMs`. When the client is not ready, for example while it is reconnecting, the check reports `Unhealthy` without sending the `PING`, because `node-redis` would queue it until the client reconnects. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.
 
 With the [HTTP plugin](../http-plugin/installation) and `healthChecks: true`, `GET /health` includes the `redis:<name>` checks.
+
+## Stores
+
+`RedisStore(connection, options?)` creates a [store provider](../getting-started/stores) that keeps the data of the framework features in a configured connection, so every instance of the application connected to the same Redis shares it. Pass it to the options of the plugins that use a store:
+
+```ts title="app.ts"
+import { RedisPlugin, RedisPluginOptionsFactory, RedisStore } from '@axisparkjs/redis';
+import { SchedulePlugin, SchedulePluginOptionsFactory } from '@axisparkjs/schedule';
+
+const redis = RedisStore('MAIN', { prefix: 'myapp:' });
+
+app.use(RedisPlugin, RedisPluginOptionsFactory.create({ connections: [{ name: 'MAIN', url: 'redis://localhost:6379' }] }));
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: redis }));
+app.use(HttpPlugin, HttpPluginOptionsFactory.create({ rateLimit: true, rateLimitOptions: { ttl: 60_000, limit: 100, store: redis } }));
+```
+
+The first argument is the name of a connection in `connections`. The only option is `prefix`, which is added before every key, followed by the kind of store: with `prefix: 'myapp:'`, the rate limit keys start with `myapp:rate-limit:` and the locks with `myapp:lock:`. Use a different prefix for each application that shares the same Redis database.
+
+| Kind | Class | How it is stored |
+| --- | --- | --- |
+| `rate-limit` | `RedisRateLimitStore` | A sorted set per bucket, updated by a Lua script with the time of the Redis server, so the sliding window is exact and atomic for every instance. The bucket expires with its window. |
+| `lock` | `RedisLockStore` | A key with the random token of the owner, acquired with `SET NX PX`. It is released and extended with Lua scripts that compare the token. |
+| `cache` | `RedisCacheStore` | A key with the value serialized with JSON, and `PX` when it has a time to live. |
+
+The stores use the connection, but they never open or close it: the plugin manages its lifecycle. The plugins create their stores when they start, after the Redis connections are registered, so the order of the plugins does not matter. Two errors are specific to these stores:
+
+- `RedisStoreConnectionNotFoundError`: the connection is not configured in the `RedisPlugin`. The application fails to start.
+- `RedisStoreConnectionNotReadyError`: an operation was received while the connection is not ready, for example while it reconnects. The operation is rejected instead of being queued until the connection is ready again, so the HTTP requests and the jobs never wait for Redis indefinitely.
 
 ## Pub/Sub
 

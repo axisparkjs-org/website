@@ -31,4 +31,15 @@ app.use(SchedulePlugin);
 
 ## 3. Configure the Schedule Plugin
 
-The Schedule Plugin has no configuration options. You can start using it right away after importing it into your project.
+The Schedule Plugin works without configuration. Its only option is `lockStore`, the [store](../getting-started/stores) of the locks of the [exclusive jobs](./exclusive-jobs). It defaults to `MemoryStore()`, which only coordinates the jobs of one process. Pass the options with `SchedulePluginOptionsFactory`:
+
+```ts
+import { RedisStore } from '@axisparkjs/redis';
+import { SchedulePlugin, SchedulePluginOptionsFactory } from '@axisparkjs/schedule';
+
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: RedisStore('MAIN') }));
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `lockStore` | `StoreProvider<'lock'>` | `MemoryStore()` | The provider of the lock store of the exclusive jobs, called when the plugin starts. |

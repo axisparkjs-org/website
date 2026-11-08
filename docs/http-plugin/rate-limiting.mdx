@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Rate limiting
 
-The HTTP plugin can limit requests in memory with a sliding time window. It is disabled by default. Enable it in the plugin options to apply the configured defaults to every endpoint:
+The HTTP plugin can limit requests with a sliding time window. It is disabled by default. Enable it in the plugin options to apply the configured defaults to every endpoint:
 
 ```ts
 HttpPluginOptionsFactory.create({
@@ -60,7 +60,30 @@ export class HealthController {
 
 Requests over the limit receive `429 Too Many Requests`, a JSON body containing `message`, and a `Retry-After` header in seconds. The default message is `Too many requests. Please try again later.` Decorators have no effect while `rateLimit` is `false`.
 
-The requests are counted by `RateLimitProcessor` in `@axisparkjs/engine`, with the same algorithm for every transport: the HTTP plugin only identifies the client by its IP address. The default in-memory store is local to the application process, so it does not share limits across multiple server instances. See [Rate limits](../engine-system/rate-limits) in the engine documentation to use a shared store or to add rate limits to other transports.
+The requests are counted by `RateLimitProcessor` in `@axisparkjs/engine`, with the same algorithm for every transport: the HTTP plugin only identifies the client by its IP address. See [Rate limits](../engine-system/rate-limits) in the engine documentation to add rate limits to other transports.
+
+## Sharing the limits between instances
+
+The requests are counted in memory by default, so each instance of the application has its own limits: with three instances behind a load balancer, a client can make three times as many requests. Set `rateLimitOptions.store` to a shared [store](../getting-started/stores), such as `RedisStore` from `@axisparkjs/redis`, to count the requests of every instance together:
+
+```ts
+import { RedisPlugin, RedisPluginOptionsFactory, RedisStore } from '@axisparkjs/redis';
+
+app.use(RedisPlugin, RedisPluginOptionsFactory.create({ connections: [{ name: 'MAIN', url: 'redis://localhost:6379' }] }));
+app.use(
+    HttpPlugin,
+    HttpPluginOptionsFactory.create({
+        rateLimit: true,
+        rateLimitOptions: {
+            ttl: 60_000,
+            limit: 100,
+            store: RedisStore('MAIN', { prefix: 'myapp:' })
+        }
+    })
+);
+```
+
+The store is created when the plugin starts. The responses, the `Retry-After` header and the decorators do not change. When the Redis connection is not ready, for example while it reconnects, the store rejects the requests with a `RedisStoreConnectionNotReadyError`, returned as `500 Internal Server Error`, instead of making them wait for the connection.
 
 ## Behind a proxy
 

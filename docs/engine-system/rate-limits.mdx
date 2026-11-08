@@ -8,8 +8,9 @@ The engine applies rate limits with the same algorithm for every transport. The 
 
 - The `@RateLimit()` and `@NoRateLimit()` decorators, which declare the limits of a controller or handler.
 - `RateLimitGenerator`, which builds the `RateLimitDefinition` (`ttl` and `limit`) from the decorators and the defaults of the transport.
-- `RateLimitProcessor`, which counts the request and returns the `RateLimitDecision` (`allowed` and `retryAfterMs`).
-- `RateLimitStore`, which keeps the buckets and applies the sliding window. `InMemoryRateLimitStore` is used by default.
+- `RateLimitProcessor`, which counts the request in a `RateLimitStore` and returns the `RateLimitDecision` (`allowed` and `retryAfterMs`).
+
+The stores live in `@axisparkjs/store` with the [other stores](../getting-started/stores): `RateLimitStore`, `RateLimitPolicy`, `RateLimitDecision` and `InMemoryRateLimitStore`.
 
 The WebSocket and MCP transports do not apply rate limits yet. The only part that depends on the transport is how the client is identified: the IP address for HTTP, the connection for WebSocket, the session for MCP… Each transport registers a `RateLimitResolver` that returns that identifier.
 
@@ -17,7 +18,7 @@ The WebSocket and MCP transports do not apply rate limits yet. The only part tha
 
 `RateLimitProcessor.process(definition, context)`:
 
-1. Returns `undefined` when there is no definition or no resolver is registered for `context.transport`.
+1. Returns `undefined` when there is no definition, no resolver is registered for `context.transport` or no store is registered.
 2. Gets the client identifier from the resolver of the transport. When it returns `undefined`, the request is counted in an `unknown` bucket shared by every client without an identifier.
 3. Builds the bucket key with the transport, the client identifier, `context.target.name` and `context.propertyKey`. The key identifies the handler, not the requested URL, so the path parameters and the query string do not create new buckets.
 4. Counts the request in the store with the sliding window of the definition and returns the decision.
@@ -41,11 +42,16 @@ export class WebSocketRateLimitResolver implements RateLimitResolver {
 }
 ```
 
-Register the resolver, and the default limits of the transport, when the plugin is initialized:
+Register the resolver, and the default limits of the transport, when the plugin is registered. Then register the store when the plugin starts, with the provider of its options and `MemoryStore()` by default, as the HTTP plugin does:
 
 ```ts
+// onRegister
 RateLimitGenerator.registerRateLimit(ExecutionTransport.WebSocket, { ttl: 60_000, limit: 100 });
 RateLimitProcessor.registerRateLimit(ExecutionTransport.WebSocket, await this.injector.get(WebSocketRateLimitResolver));
+
+// onStart
+const provider = this.options.rateLimitOptions?.store ?? MemoryStore();
+RateLimitProcessor.registerRateLimitStore(await provider('rate-limit', this.context));
 ```
 
 Then generate the definition and process it in a guard of the transport, which decides how to reject the request:
@@ -69,25 +75,19 @@ export class WebSocketRateLimitGuard {
 
 The HTTP transport works the same way: `HttpRateLimitResolver` returns `request.ip`, and `RateLimitGuard` sets the `Retry-After` header and returns `429 Too Many Requests`. Passing `undefined` to `RateLimitProcessor.registerRateLimit(transport)` removes the resolver and disables the limits of the transport.
 
-:::note
-Before this change, `RateLimitResolver.resolve(definition, context)` returned the decision, and each resolver kept its own buckets. Custom resolvers must now implement `resolve(context)` and return the client identifier.
-:::
+## Stores
 
-## Custom stores
-
-The buckets are kept by a `RateLimitStore`. Implement it to share the limits between several instances of the application, for example in Redis, and register it with `RateLimitProcessor.registerRateLimitStore()`:
+The buckets are kept by the `RateLimitStore` registered with `RateLimitProcessor.registerRateLimitStore(store)`. The plugins register it when they start, from the `StoreProvider` of their options, so applications choose the store in the options instead of calling the processor:
 
 ```ts
-import { RateLimitDecision, RateLimitDefinition, RateLimitProcessor, RateLimitStore } from '@axisparkjs/engine';
+import { RedisStore } from '@axisparkjs/redis';
 
-class SharedRateLimitStore implements RateLimitStore {
-    async consume(key: string, definition: RateLimitDefinition): Promise<RateLimitDecision> {
-        // Count the request in the bucket of the key with a sliding window of definition.ttl milliseconds.
-        ...
-    }
-}
-
-RateLimitProcessor.registerRateLimitStore(new SharedRateLimitStore());
+HttpPluginOptionsFactory.create({
+    rateLimit: true,
+    rateLimitOptions: { ttl: 60_000, limit: 100, store: RedisStore('MAIN') }
+});
 ```
 
-Calling `RateLimitProcessor.registerRateLimitStore()` without a store restores a new, empty `InMemoryRateLimitStore`. The store is static, like the resolvers of the other processors, so every application in the same process shares it. Tests that create several applications can call it to start each one with empty buckets.
+`MemoryStore()` creates an `InMemoryRateLimitStore`, which keeps the buckets in the process and removes the expired ones every 256 checks. `RedisStore()` applies the same sliding window in Redis, so every instance connected to the same Redis shares the limits. See [Stores](../getting-started/stores#custom-stores) to write your own store.
+
+The store is static, like the resolvers of the other processors, so every application in the same process uses the store registered by the last plugin that started. Each start of the HTTP plugin registers a new store, so tests that create several applications start each one with empty in-memory buckets.

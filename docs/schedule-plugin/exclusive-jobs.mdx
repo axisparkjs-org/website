@@ -1,0 +1,78 @@
+---
+sidebar_position: 5
+---
+
+# Exclusive Jobs
+
+Every instance of the application runs its own scheduler, so with three instances behind a load balancer each job runs three times. Mark a job as **exclusive** to run it on only one instance:
+
+```ts title="report-scheduler.ts"
+import { Cron, Interval, Scheduler } from '@axisparkjs/schedule';
+
+@Scheduler()
+export class ReportScheduler {
+    /** Runs once per day on only one instance. */
+    @Cron({ value: '0 0 6 * * *', name: 'dailyReport', exclusive: true })
+    async dailyReport() {...}
+
+    /** Never runs on two instances at the same time. */
+    @Interval({ value: 60_000, name: 'syncCatalog', exclusive: { mode: 'no-overlap', ttl: 120_000 } })
+    async syncCatalog() {...}
+}
+```
+
+Before each execution of an exclusive job, the scheduler acquires a lock in the `lockStore` of the plugin. The instance that acquires it runs the job, and the others skip that execution and log `Job <name> skipped because another instance holds its lock` at the `debug` level.
+
+The locks are only shared between instances with a shared store, such as `RedisStore` from `@axisparkjs/redis`:
+
+```ts title="app.ts"
+import { RedisPlugin, RedisPluginOptionsFactory, RedisStore } from '@axisparkjs/redis';
+import { SchedulePlugin, SchedulePluginOptionsFactory } from '@axisparkjs/schedule';
+
+app.use(RedisPlugin, RedisPluginOptionsFactory.create({ connections: [{ name: 'MAIN', url: 'redis://localhost:6379' }] }));
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: RedisStore('MAIN', { prefix: 'myapp:' }) }));
+```
+
+With the default `MemoryStore()`, the locks are local to the process, so an exclusive job behaves like any other job.
+
+## Options
+
+`exclusive` accepts `true` or an object:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `'once-per-occurrence' \| 'no-overlap'` | `'once-per-occurrence'` | How the instances share the job. |
+| `ttl` | `number` | Depends on the mode | The time to live of the lock in milliseconds. |
+
+### `once-per-occurrence`
+
+Each occurrence of the job runs on only one instance. The lock of an occurrence is **not released** when the job ends: it expires after its `ttl`. Otherwise, an instance whose clock is slightly behind would acquire it again after the release and run the same occurrence twice.
+
+The lock is identified by the job name and its occurrence:
+
+| Job | Occurrence | Default `ttl` |
+| --- | --- | --- |
+| `@Cron` | The scheduled time, which is the same in every instance. | The time until the next occurrence. |
+| `@Interval` | The interval window counted from the Unix epoch. The instances start at different times, so their scheduled times differ, but each one runs the job once per window. | The interval. |
+| `@DateSchedule` | The scheduled date. | One minute. |
+| `@Timeout` | The job, because it runs once per process. The first instance whose timeout expires runs it, and the others skip it during the `ttl`. | One minute. |
+
+### `no-overlap`
+
+The job never runs on two instances at the same time, but several instances can run it one after another. The lock is identified by the job name, it is extended every half of its `ttl` while the job runs, and it is released when the job ends. The default `ttl` is 30 seconds.
+
+Use it for long jobs that must not run in parallel. If an instance stops while it runs the job, the lock expires after its `ttl` and another instance can run it.
+
+## Errors
+
+When the lock cannot be acquired, for example because Redis is not available, the execution is skipped, the error is logged and the job is scheduled again for its next occurrence. When a `no-overlap` job cannot extend its lock, a warning is logged and the job keeps running.
+
+## Dynamic jobs
+
+The job definitions created with the `SchedulerService` are made exclusive with `setExclusive()`:
+
+```ts
+this.schedulerService.startJob(
+    new CronJobDefinition('cleanup', '0 */15 * * * *', async () => {...}).setExclusive({ mode: 'no-overlap' })
+);
+```

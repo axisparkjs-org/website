@@ -34,7 +34,9 @@ export class SchedulerExample {
 }
 ```
 
-> You can also provide additional options to the decorators, such as `name` and `disabled`. The `name` option allows you to specify a unique name for the job, which can be useful for identifying and managing jobs. The `disabled` option allows you to disable a job, preventing it from being executed until it is enabled again.
+> You can also provide additional options to the decorators, such as `name`, `disabled` and `exclusive`. The `exclusive` option runs the job on only one instance of the application: see [Exclusive jobs](./exclusive-jobs).
+
+> The `name` option allows you to specify a unique name for the job, which can be useful for identifying and managing jobs. The `disabled` option allows you to disable a job, preventing it from being executed until it is enabled again.
 
 > When no name is provided for a job, the Schedule Plugin will automatically generate a unique name for the job based on the method name and the class name. This ensures that each job has a unique identifier, even if you don't explicitly provide a name. Example: `schedulerexample.handlecronjob` will be the generated name for the `handleCronJob` method in the `SchedulerExample` class.
 
