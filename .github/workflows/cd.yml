@@ -76,7 +76,7 @@ jobs:
       # documentation version <major>.<minor> of the release (see scripts/snapshot-version.mjs) and are
       # committed to `main`, so the next builds keep them.
       - name: Save documentation version
-        if: github.event_name == 'repository_dispatch'
+        if: github.event_name == 'repository_dispatch' || github.event.inputs.group == 'pages'
         env:
           VERSION: ${{ github.event.client_payload.version }}
         run: |
@@ -106,18 +106,18 @@ jobs:
 
       # Release: artifact for GitHub Pages.
       - name: Setup Pages
-        if: github.event_name == 'repository_dispatch'
+        if: github.event_name == 'repository_dispatch' || github.event.inputs.group == 'pages'
         uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        if: github.event_name == 'repository_dispatch'
+        if: github.event_name == 'repository_dispatch' || github.event.inputs.group == 'pages'
         uses: actions/upload-pages-artifact@v5
         with:
           path: build
 
       # Called by the CI: artifact for the staging image.
       - name: Upload site
-        if: github.event_name != 'repository_dispatch'
+        if: github.event_name != 'repository_dispatch' && github.event.inputs.group == 'staging'
         uses: actions/upload-artifact@v7
         with:
           name: website-build
@@ -127,7 +127,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: build
-    if: github.event_name == 'repository_dispatch'
+    if: github.event_name == 'repository_dispatch' || github.event.inputs.group == 'pages'
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -143,7 +143,7 @@ jobs:
   staging:
     name: Publish staging image
     needs: build
-    if: github.event_name != 'repository_dispatch'
+    if: github.event_name != 'repository_dispatch' && github.event.inputs.group == 'staging'
     runs-on: ubuntu-latest
     permissions:
       contents: read
