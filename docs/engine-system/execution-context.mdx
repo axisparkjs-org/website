@@ -21,4 +21,4 @@ export interface ExecutionContext extends ExecutionHandler {
 
 As you can see, the `ExecutionContext` interface includes a property called `scopedContainer`, responsible of Injecting Scoped Dependencies. This allows you to register and resolve dependencies that are specific to the current execution context, ensuring that they are isolated from other executions. Also contains the property `transport`, which indicates the transport mechanism used for the execution, such as HTTP, WebSocket, or any other supported transport. This allows you to handle different types of requests and responses based on the transport being used.
 
-This `ExecutionContext` can be retrieve in any step of the workflow using the parameter `@Context()` decorator. See more about this in the [Parameters](/docs/engine-system/parameters) section.
+This `ExecutionContext` can be retrieve in any step of the workflow using the parameter `@Context()` decorator. See more about this in the [Parameters](./parameters.mdx) section.

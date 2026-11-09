@@ -1,0 +1,15 @@
+# Interface: MaxLengthPipeStepConfig
+
+## Extends
+
+- `PipeStepConfig`
+
+## Indexable
+
+> \[`key`: `string`\]: `unknown`
+
+## Properties
+
+### value
+
+> **value**: `number`

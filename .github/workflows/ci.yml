@@ -55,6 +55,9 @@ jobs:
       - name: Generate API documentation
         run: npm run api:generate
 
+      - name: Generate changelog
+        run: npm run changelog:generate
+
       - name: Build documentation
         run: npm run build
 
@@ -64,7 +67,9 @@ jobs:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
-      contents: read
+      # cd.yml asks for `contents: write` (a release commits the documentation version); a called workflow
+      # can't ask for more than its caller. The staging path does not push anything.
+      contents: write
       packages: write
       pages: write
       id-token: write

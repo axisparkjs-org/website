@@ -1,6 +1,9 @@
 # Generated API reference (see api-generator/)
 /api
 
+# Generated changelog page (see scripts/generate-changelog.mjs)
+/src/pages/changelog.mdx
+
 # Checkout of the axispark repository used to generate the API reference
 /axispark
 

@@ -1,0 +1,360 @@
+/* Changelog page: a timeline of releases (src/components/Changelog/Release.tsx). */
+
+:root {
+    /* Height of the bar of releases (ReleaseNav), which stays under the navigation bar. */
+    --axc-nav-height: 3.75rem;
+    --axc-sticky-top: calc(var(--ifm-navbar-height) + var(--axc-nav-height) + 1.25rem);
+}
+
+.axc-intro,
+.axc-timeline {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.axc-intro {
+    padding-top: 2.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Bar of releases ---------------------------------------------------------- */
+
+.axc-nav {
+    position: sticky;
+    top: var(--ifm-navbar-height);
+    z-index: 2;
+    max-width: 1120px;
+    height: var(--axc-nav-height);
+    margin: 0 auto 2.5rem;
+    padding: 0.5rem 1rem 0;
+}
+
+.axc-nav__list {
+    display: flex;
+    gap: 0.25rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.3rem;
+    overflow-x: auto;
+    border-radius: 999px;
+    background: var(--ax-glass-bg-strong);
+    list-style: none;
+    scrollbar-width: none;
+}
+
+.axc-nav__list::-webkit-scrollbar {
+    display: none;
+}
+
+.axc-nav__link {
+    display: block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    color: var(--ax-text-muted);
+    font-family: var(--ax-font-display);
+    font-size: 0.92rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition:
+        background-color 0.2s,
+        color 0.2s;
+}
+
+.axc-nav__link:hover {
+    color: var(--ax-text);
+    text-decoration: none;
+}
+
+.axc-nav__link--patch {
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.axc-nav__link[aria-current='true'] {
+    background: rgba(232, 188, 63, 0.16);
+    color: var(--ax-gold);
+    box-shadow: inset 0 0 0 1px rgba(232, 188, 63, 0.35);
+}
+
+.axc-intro h1 {
+    margin-bottom: 1rem;
+    font-family: var(--ax-font-display);
+    font-size: clamp(2.75rem, 7vw, 4.5rem);
+    font-weight: 800;
+    font-variation-settings: 'wdth' 85;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+}
+
+.axc-intro p {
+    max-width: 62ch;
+    color: var(--ax-text-muted);
+    font-size: 1.05rem;
+}
+
+/* Release ----------------------------------------------------------------- */
+
+.axc-release {
+    --axc-rail: 2rem;
+    --axc-gap: 4rem;
+    display: grid;
+    grid-template-columns: var(--axc-rail) 13rem minmax(0, 1fr);
+    column-gap: 1.75rem;
+    padding-bottom: var(--axc-gap);
+}
+
+.axc-release__rail {
+    position: relative;
+}
+
+/* The line runs from this release to the node of the next one, across the space between them. */
+.axc-release__rail::before {
+    content: '';
+    position: absolute;
+    top: 0.9rem;
+    bottom: calc(-1 * var(--axc-gap) - 0.9rem);
+    left: calc(50% - 1px);
+    width: 2px;
+    background: linear-gradient(to bottom, rgba(232, 188, 63, 0.45), rgba(255, 255, 255, 0.08));
+}
+
+.axc-release:last-child .axc-release__rail::before {
+    display: none;
+}
+
+.axc-release__node {
+    position: absolute;
+    top: 0.45rem;
+    left: 50%;
+    width: 0.95rem;
+    height: 0.95rem;
+    border: 2px solid var(--ax-gold);
+    border-radius: 50%;
+    background: var(--ax-night);
+    transform: translateX(-50%);
+}
+
+.axc-release--latest .axc-release__node {
+    border-color: #ffe29a;
+    background: var(--ax-gold);
+    box-shadow:
+        0 0 0 5px rgba(232, 188, 63, 0.16),
+        0 0 22px 4px rgba(238, 106, 36, 0.55);
+}
+
+.axc-release--major .axc-release__node {
+    width: 1.15rem;
+    height: 1.15rem;
+    background: var(--ax-ember);
+    border-color: var(--ax-gold);
+}
+
+.axc-release--patch .axc-release__node {
+    top: 0.6rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-color: var(--ax-text-muted);
+}
+
+.axc-release--unreleased .axc-release__node {
+    border-style: dashed;
+    border-color: var(--ax-text-muted);
+}
+
+.axc-release--unreleased .axc-release__rail::before {
+    background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.25) 0 6px, transparent 6px 12px);
+}
+
+/* Meta: version, date and links, kept in view while reading the release. */
+
+.axc-release__meta {
+    position: sticky;
+    top: var(--axc-sticky-top);
+    align-self: start;
+}
+
+.axc-release__version {
+    margin: 0 0 0.35rem;
+    font-family: var(--ax-font-display);
+    font-size: 2.4rem;
+    font-weight: 800;
+    font-variation-settings: 'wdth' 85;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    scroll-margin-top: var(--axc-sticky-top);
+}
+
+.axc-release--patch .axc-release__version {
+    font-size: 1.6rem;
+    color: var(--ax-text-muted);
+}
+
+.axc-release--unreleased .axc-release__version {
+    font-size: 1.9rem;
+    color: var(--ax-text-muted);
+}
+
+.axc-release__badge {
+    display: inline-block;
+    margin-bottom: 0.6rem;
+    padding: 0.15rem 0.6rem;
+    border: 1px solid rgba(232, 188, 63, 0.45);
+    border-radius: 999px;
+    background: rgba(232, 188, 63, 0.12);
+    color: var(--ax-gold);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.axc-release__date {
+    margin-bottom: 0.75rem !important;
+    color: var(--ax-text-muted);
+    font-size: 0.9rem;
+}
+
+.axc-release__links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.axc-release__links a {
+    color: var(--ax-text);
+    text-decoration: underline;
+    text-decoration-color: rgba(232, 188, 63, 0.5);
+    text-underline-offset: 0.2em;
+}
+
+.axc-release__links a:hover {
+    color: var(--ax-gold);
+}
+
+/* Highlights: the features of the release. */
+
+.axc-highlights {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.85rem;
+    margin: 0 0 1.75rem;
+    padding: 0;
+    list-style: none;
+}
+
+.axc-highlight {
+    display: flex;
+    flex-direction: column;
+    margin: 0 !important;
+    padding: 1.1rem 1.2rem;
+    border-radius: 14px;
+}
+
+.axc-highlight h3 {
+    margin: 0 0 0.45rem;
+    font-family: var(--ax-font-display);
+    font-size: 1.12rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.axc-highlight p {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--ax-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+.axc-highlight p code {
+    padding: 0 0.25em;
+    font-size: 0.85em;
+}
+
+.axc-highlight .axc-highlight__packages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: auto;
+    padding-top: 0.85rem;
+    -webkit-line-clamp: none;
+    line-clamp: none;
+}
+
+.axc-highlight__packages span {
+    padding: 0.1rem 0.5rem;
+    border-radius: 6px;
+    background: rgba(232, 188, 63, 0.1);
+    color: #f1cf73;
+    font-family: var(--ax-font-mono);
+    font-size: 0.72rem;
+}
+
+/* The full list of changes. */
+
+.axc-details {
+    max-width: 75ch;
+}
+
+.axc-details__label {
+    margin-bottom: 0.5rem !important;
+    color: var(--ax-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.axc-details h3 {
+    margin: 1.4rem 0 0.6rem;
+    color: var(--ax-text);
+    font-family: var(--ax-font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.axc-details > h3:first-of-type {
+    margin-top: 0;
+}
+
+.axc-details ul {
+    padding-left: 1.1rem;
+}
+
+.axc-details li {
+    margin-bottom: 0.45rem;
+    font-size: 0.93rem;
+    line-height: 1.6;
+}
+
+.axc-details li::marker {
+    color: rgba(232, 188, 63, 0.6);
+}
+
+/* Phones and tablets: the rail on the left, the meta above the content. */
+
+@media (max-width: 860px) {
+    .axc-release {
+        --axc-rail: 1.25rem;
+        grid-template-columns: var(--axc-rail) minmax(0, 1fr);
+        --axc-gap: 3rem;
+        column-gap: 1rem;
+    }
+
+    .axc-release__rail {
+        grid-row: span 2;
+    }
+
+    .axc-release__meta {
+        position: static;
+        margin-bottom: 1.25rem;
+    }
+
+    .axc-release__links {
+        flex-direction: row;
+        gap: 1rem;
+    }
+}

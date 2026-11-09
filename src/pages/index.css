@@ -1,532 +1,579 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
+/* Home page. The tokens (--ax-*) and the .glass material live in src/css/custom.css. */
 
-:global(*) {
-    box-sizing: border-box;
+.ax-home {
+    --ax-home-width: 1180px;
+    overflow-x: clip;
 }
 
-:global(body) {
+.ax-home h1,
+.ax-home h2,
+.ax-home h3 {
+    font-family: var(--ax-font-display);
+    color: var(--ax-text);
+}
+
+.ax-home h2 {
     margin: 0;
-    background: #050505;
-    color: #f5f5f5;
-    font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4.1rem);
+    font-weight: 700;
+    font-variation-settings: 'wdth' 92;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
 }
 
-:global(a) {
-    color: inherit;
+.ax-home p {
+    margin: 0;
+}
+
+.ax-kicker {
+    margin-bottom: 1rem !important;
+    color: var(--ax-gold);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.ax-lead,
+.ax-split__copy > p:not(.ax-kicker) {
+    max-width: 34rem;
+    color: var(--ax-text-muted);
+    font-size: 1.125rem;
+    line-height: 1.7;
+}
+
+/* Hero ------------------------------------------------------------------- */
+
+.ax-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+    align-items: center;
+    gap: 3rem;
+    max-width: var(--ax-home-width);
+    min-height: calc(100vh - var(--ifm-navbar-height));
+    margin: 0 auto;
+    padding: 4rem 1.5rem 5rem;
+}
+
+.ax-hero__copy {
+    position: relative;
+    z-index: 1;
+    /* The title is sized against this column (cqi units), so the name always fits on one line. */
+    container-type: inline-size;
+}
+
+.ax-pill {
+    display: inline-block;
+    margin-bottom: 1.75rem !important;
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    color: var(--ax-text-muted);
+    font-size: 0.875rem;
+}
+
+.ax-hero__title {
+    margin: 0 0 1.25rem;
+    /* "AxiSpark.js" is about 4.85em wide: 20cqi fills the column without overflowing it. */
+    font-size: min(8.5rem, 20cqi);
+    font-weight: 800;
+    white-space: nowrap;
+    font-variation-settings: 'wdth' 85;
+    line-height: 0.88;
+    letter-spacing: -0.05em;
+    /* The name is lit by the spark: gold that cools into the text color. */
+    background: linear-gradient(100deg, var(--ax-gold) 0%, #f5d27a 38%, var(--ax-text) 78%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+
+.ax-hero__claim {
+    margin-bottom: 1.5rem !important;
+    color: var(--ax-text);
+    font-family: var(--ax-font-display);
+    font-size: clamp(1.75rem, 3.4vw, 2.6rem);
+    font-weight: 600;
+    font-variation-settings: 'wdth' 95;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+}
+
+.ax-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+}
+
+.ax-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 3rem;
+    padding: 0 1.4rem;
+    border-radius: 14px;
+    font-weight: 600;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.ax-button:hover {
     text-decoration: none;
 }
 
-.hero {
-    min-height: 90vh;
+.ax-button--primary {
+    background: linear-gradient(180deg, #f2cc5c, var(--ax-gold));
+    color: #1b1404;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 10px 30px -10px rgba(232, 188, 63, 0.6);
+}
+
+.ax-button--primary:hover {
+    color: #1b1404;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 14px 40px -10px rgba(238, 106, 36, 0.7);
+}
+
+.ax-button--glass {
+    color: var(--ax-text);
+}
+
+.ax-button--glass:hover {
+    color: var(--ax-text);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.ax-install {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 120px 24px 100px;
-    position: relative;
+    gap: 0.75rem;
+    max-width: 26rem;
+    margin-top: 1.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+    border-radius: 14px;
+    font-family: var(--ax-font-mono);
+    font-size: 0.875rem;
+}
+
+.ax-install code {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
-    background: var(--ifm-hero-background);
-}
-
-.hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.18;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: linear-gradient(to bottom, black, transparent);
-}
-
-.badge {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.035);
-    color: #aaa;
-    font-size: 13px;
-    margin-bottom: 32px;
-}
-
-.badge span {
-    color: #ffbd4a;
-}
-
-.hero .hero-title {
-    margin-bottom: 28px;
-}
-
-.hero h1 {
-    position: relative;
-    margin: 0;
-    max-width: 950px;
-    font-size: clamp(58px, 9vw, 128px);
-    line-height: 0.9;
-    letter-spacing: -0.075em;
-    font-weight: 800;
-}
-
-.hero h2 {
-    position: relative;
-    margin: 0;
-    max-width: 950px;
-    font-size: clamp(42px, 6vw, 90px);
-    line-height: 0.9;
-    letter-spacing: -0.075em;
-    font-weight: 800;
-}
-
-.hero h1 span,
-.hero h2 span,
-.intro h2 span,
-.code-copy h2 span,
-.terminal-copy h2 span,
-.principles h2 span,
-.cta h2 span {
-    color: #ffbd4a;
-}
-
-.hero-description {
-    position: relative;
-    max-width: 620px;
-    margin: 34px auto;
-    color: #999;
-    font-size: 19px;
-    line-height: 1.7;
-}
-
-.hero-actions,
-.cta-actions {
-    position: relative;
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.button {
-    padding: 13px 20px;
-    border-radius: 9px;
-    font-size: 14px;
-    font-weight: 600;
-    transition:
-        transform 0.2s ease,
-        background 0.2s ease;
-}
-
-.button:hover {
-    transform: translateY(-2px);
-}
-
-.button.primary {
-    background: #f5f5f5;
-    color: #050505;
-}
-
-.button.secondary {
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.04);
-    color: #f5f5f5;
-}
-
-.install {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 60px;
-    padding: 14px 16px;
-    min-width: 340px;
-    justify-content: space-between;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.035);
-    border-radius: 10px;
-    color: #bbb;
-    font-family: monospace;
-    font-size: 13px;
-}
-
-.prompt {
-    color: #ffbd4a;
-}
-
-.install button {
+    padding: 0;
     border: 0;
-    background: transparent;
-    color: #777;
+    background: none;
+    color: var(--ax-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ax-install__prompt {
+    color: var(--ax-gold);
+}
+
+.ax-install button {
+    min-width: 4.5rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--ax-glass-border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ax-text-muted);
+    font: 600 0.8rem var(--ax-font-body);
     cursor: pointer;
 }
 
-.intro,
-.principles {
-    max-width: 1100px;
-    margin: auto;
-    padding: 80px 24px 80px;
+.ax-install button:hover {
+    color: var(--ax-text);
 }
 
-.section-label {
-    color: #777;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    margin-bottom: 22px;
+/* The glass logo: static/img/icon.png cut from frosted glass, floating over the ember light. */
+
+.ax-logo {
+    position: relative;
+    /* The box of the drawing inside the 800x800 PNG (605x444, centered). */
+    width: min(100%, 300px);
+    aspect-ratio: 605 / 444;
+    justify-self: center;
 }
 
-.intro h2,
-.code-copy h2,
-.terminal-copy h2,
-.principles h2,
-.cta h2 {
-    margin: 0;
-    font-size: clamp(42px, 6vw, 76px);
-    line-height: 0.98;
-    letter-spacing: -0.055em;
+/* Each layer is the full square of the PNG, overflowing the box so the drawing fits it exactly. */
+.ax-logo__layer {
+    position: absolute;
+    top: -40.1%;
+    left: -16.1%;
+    width: 132.2%;
+    max-width: none;
+    height: 180.2%;
 }
 
-.intro > p {
-    max-width: 550px;
-    margin-top: 28px;
-    color: #777;
-    font-size: 18px;
-    line-height: 1.7;
+.ax-logo__glow {
+    position: absolute;
+    inset: 4% 6%;
+    border-radius: 50%;
+    background:
+        radial-gradient(ellipse at 34% 40%, rgba(255, 214, 102, 0.5), transparent 48%),
+        radial-gradient(ellipse at 64% 68%, rgba(238, 106, 36, 0.55), transparent 50%),
+        radial-gradient(ellipse at 80% 18%, rgba(120, 140, 255, 0.3), transparent 40%);
+    filter: blur(34px);
+    animation: ax-breathe 9s ease-in-out infinite;
 }
 
-.features {
-    max-width: 1100px;
-    margin: auto;
-    padding: 30px 24px 30px;
+.ax-logo__glass,
+.ax-logo__shine {
+    -webkit-mask: var(--ax-logo-mask) center / contain no-repeat;
+    mask: var(--ax-logo-mask) center / contain no-repeat;
+}
+
+.ax-logo__glass {
+    background: rgba(255, 255, 255, 0.16);
+    -webkit-backdrop-filter: blur(16px) saturate(1.7);
+    backdrop-filter: blur(16px) saturate(1.7);
+}
+
+/* The colors of the logo, multiplied over the pane so the light behind shows through like stained glass. */
+.ax-logo__tint {
+    opacity: 0.85;
+    mix-blend-mode: multiply;
+    filter: drop-shadow(0 18px 36px rgba(238, 106, 36, 0.28));
+}
+
+/* The reflection: bright on the upper left edge, fading across the pane. */
+.ax-logo__shine {
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 34%, transparent 52%),
+        linear-gradient(325deg, rgba(255, 236, 200, 0.22) 0%, transparent 30%);
+    mix-blend-mode: screen;
+}
+
+@keyframes ax-breathe {
+    0%,
+    100% {
+        transform: scale(0.94) rotate(0deg);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.04) rotate(8deg);
+        opacity: 1;
+    }
+}
+
+/* Code and terminal ------------------------------------------------------ */
+
+.ax-split {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1px;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.feature {
-    min-height: 270px;
-    padding: 42px;
-    background: #050505;
-}
-
-.feature-icon {
-    width: 42px;
-    height: 42px;
-    display: grid;
-    place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: #ffbd4a;
-    margin-bottom: 30px;
-}
-
-.feature h3 {
-    font-size: 21px;
-    margin: 0 0 12px;
-}
-
-.feature p {
-    color: #777;
-    line-height: 1.7;
-    max-width: 390px;
-}
-
-.feature a,
-.text-link {
-    display: inline-block;
-    margin-top: 12px;
-    color: #aaa;
-    font-size: 13px;
-}
-
-.code-section,
-.terminal-section {
-    max-width: 1200px;
-    margin: auto;
-    padding: 90px 24px 30px;
-    display: grid;
-    grid-template-columns: 0.8fr 1.2fr;
-    gap: 80px;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
     align-items: center;
+    gap: 4.5rem;
+    max-width: var(--ax-home-width);
+    margin: 0 auto;
+    padding: 5.5rem 1.5rem;
 }
 
-.code-copy p,
-.terminal-copy > p {
-    max-width: 440px;
-    margin: 28px 0;
-    color: #777;
-    line-height: 1.8;
+.ax-split--reverse {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
 }
 
-.code-window,
-.terminal {
+.ax-split__copy h2 {
+    margin-bottom: 1.5rem;
+}
+
+.ax-link {
+    display: inline-block;
+    margin-top: 1.75rem;
+    color: var(--ax-gold);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: rgba(232, 188, 63, 0.4);
+    text-underline-offset: 0.3em;
+}
+
+.ax-link:hover {
+    color: #f5d27a;
+    text-decoration-color: currentColor;
+}
+
+.ax-window {
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    background: #090909;
-    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
 }
 
-.window-header,
-.terminal-header {
-    height: 44px;
+.ax-window__bar {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    color: #555;
-    font-size: 12px;
+    height: 2.75rem;
+    border-bottom: 1px solid var(--ax-glass-border);
+    color: var(--ax-text-muted);
+    font-family: var(--ax-font-mono);
+    font-size: 0.75rem;
 }
 
-.window-dots,
-.terminal-dots {
+.ax-window__dots {
     position: absolute;
-    left: 16px;
+    left: 1rem;
     display: flex;
     gap: 6px;
 }
 
-.window-dots span,
-.terminal-dots span {
-    width: 8px;
-    height: 8px;
+.ax-window__dots span {
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: #333;
+    background: rgba(255, 255, 255, 0.16);
 }
 
-.code {
-    padding: 32px;
-    font: 14px/2 monospace;
-    color: #bbb;
+.ax-window__dots span:first-child {
+    background: var(--ax-ember);
 }
 
-.keyword {
-    color: #ffbd4a;
+.ax-code {
+    margin: 0;
+    padding: 1.75rem 2rem;
+    overflow-x: auto;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ax-text);
+    font: 0.84rem/1.9 var(--ax-font-mono);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.function {
-    color: #f5f5f5;
+.ax-code code {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
 }
 
-.string {
-    color: #9fb77d;
+.t-key {
+    color: var(--ax-gold);
+}
+.t-fn {
+    color: var(--ax-text);
+}
+.t-str {
+    color: #a9d39a;
+}
+.t-prop {
+    color: #d7a8ff;
+}
+.t-var {
+    color: #93b4ff;
+}
+.t-op {
+    color: var(--ax-text-muted);
+}
+.t-prompt {
+    color: var(--ax-gold);
+}
+.t-ok {
+    color: #a9d39a;
+}
+.t-dim {
+    color: var(--ax-text-muted);
+}
+.t-cursor {
+    color: var(--ax-gold);
+    animation: ax-blink 1.1s steps(1) infinite;
 }
 
-.property {
-    color: #c792ea;
-}
-
-.variable {
-    color: #82aaff;
-}
-
-.operator,
-.bracket {
-    color: #777;
-}
-
-.indent {
-    padding-left: 24px;
-}
-
-.indent-2 {
-    padding-left: 48px;
-}
-
-.terminal-section {
-    grid-template-columns: 1.2fr 0.8fr;
-}
-
-.terminal-header {
-    justify-content: flex-start;
-    padding-left: 80px;
-}
-
-.terminal-body {
-    min-height: 300px;
-    padding: 30px;
-    color: #aaa;
-    font: 14px/2 monospace;
-}
-
-.terminal-prompt {
-    color: #ffbd4a;
-    margin-right: 8px;
-}
-
-.terminal-success {
-    color: #8fbe72;
-}
-
-.terminal-muted {
-    color: #555;
-}
-
-.terminal-highlight {
-    color: #ffbd4a;
-}
-
-.terminal-cursor {
-    color: #ffbd4a;
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
+@keyframes ax-blink {
     50% {
         opacity: 0;
     }
 }
 
-.mini-points {
+/* The three steps are a real sequence: joined by a line that runs from one to the next. */
+.ax-steps {
     display: flex;
-    gap: 28px;
-    margin-top: 35px;
+    gap: 0;
+    margin: 2.25rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
 }
 
-.mini-points div {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.mini-points strong {
-    color: #ffbd4a;
-    font: 11px monospace;
-}
-
-.mini-points span {
-    color: #999;
-    font-size: 13px;
-}
-
-.principles {
-    text-align: center;
-    padding-top: 100px;
-}
-
-.principle-lead {
-    color: #ffbd4a;
-    font-size: 24px;
-    margin: 20px 0 70px;
-}
-
-.principle-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 50px;
-    text-align: left;
-}
-
-.principle-grid .number {
-    color: #555;
-    font: 12px monospace;
-}
-
-.principle-grid h3 {
-    margin-top: 20px;
-    font-size: 19px;
-}
-
-.principle-grid p {
-    color: #777;
-    line-height: 1.7;
-}
-
-.cta {
+.ax-steps li {
     position: relative;
-    overflow: hidden;
-    margin: 100px 24px;
-    padding: 120px 30px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    background: radial-gradient(circle at 50% 50%, rgba(255, 189, 74, 0.11), transparent 35%), #090909;
+    flex: 1;
+    padding-top: 1.6rem;
+    color: var(--ax-text);
+    font-weight: 600;
+    counter-increment: step;
 }
 
-.cta-spark {
-    color: #ffbd4a;
-    font-size: 32px;
-    margin-bottom: 25px;
-}
-
-.cta p {
-    color: #777;
-    line-height: 1.8;
-    margin: 30px 0;
-}
-
-.logo {
-    font-size: 19px;
+.ax-steps li::before {
+    content: counter(step);
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: var(--ax-gold);
+    color: #1b1404;
+    font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: -0.04em;
+    transform: translateY(-50%);
 }
 
-.logo > span:first-child {
-    color: #ffbd4a;
+.ax-steps li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1.4rem;
+    right: 0.4rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--ax-gold), rgba(232, 188, 63, 0.15));
 }
 
-.logo > span:last-child {
-    color: #555;
+/* Principles ------------------------------------------------------------- */
+
+.ax-principles {
+    max-width: var(--ax-home-width);
+    margin: 0 auto;
+    padding: 5.5rem 1.5rem;
 }
 
-@media (max-width: 800px) {
-    .features,
-    .code-section,
-    .terminal-section,
-    .principle-grid {
+.ax-principles h2 {
+    max-width: 46rem;
+}
+
+.ax-principles__slab {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 3.5rem;
+    border-radius: 28px;
+}
+
+.ax-principles__slab > div {
+    padding: 2.25rem 2rem 2.5rem;
+}
+
+.ax-principles__slab > div + div {
+    border-left: 1px solid var(--ax-glass-border);
+}
+
+.ax-principles__slab h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.3rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+}
+
+.ax-principles__slab p {
+    color: var(--ax-text-muted);
+    line-height: 1.65;
+}
+
+/* Call to action --------------------------------------------------------- */
+
+.ax-cta {
+    position: relative;
+    max-width: calc(var(--ax-home-width) - 3rem);
+    margin: 3rem auto 6rem;
+    padding: 5rem 2rem;
+    overflow: hidden;
+    border-radius: 32px;
+    text-align: center;
+}
+
+/* A smaller spark behind the glass, so the panel is lit from inside. */
+.ax-cta::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    top: 100%;
+    width: 40rem;
+    height: 16rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(238, 106, 36, 0.55), rgba(232, 188, 63, 0.25) 45%, transparent 70%);
+    filter: blur(20px);
+    transform: translate(-50%, -35%);
+}
+
+.ax-cta h2 {
+    max-width: 40rem;
+    margin: 0 auto 1.25rem;
+}
+
+.ax-cta p {
+    max-width: 30rem;
+    margin: 0 auto;
+    color: var(--ax-text-muted);
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.ax-cta .ax-actions {
+    justify-content: center;
+}
+
+/* Responsive ------------------------------------------------------------- */
+
+@media (max-width: 996px) {
+    .ax-hero {
         grid-template-columns: 1fr;
+        min-height: 0;
+        padding-top: 2.5rem;
     }
 
-    .code-section,
-    .terminal-section {
-        padding: 90px 24px;
-        gap: 50px;
+    .ax-logo {
+        grid-row: 1;
+        width: min(56vw, 240px);
+        margin-bottom: -1rem;
     }
 
-    .terminal-section {
-        display: flex;
-        flex-direction: column-reverse;
+    .ax-split,
+    .ax-split--reverse {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2.5rem;
+        padding: 4rem 1.5rem;
     }
 
-    .feature {
-        min-height: auto;
+    .ax-split--reverse .ax-terminal {
+        order: 1;
     }
 
-    .hero h1 {
-        font-size: clamp(52px, 15vw, 90px);
+    .ax-principles__slab {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .hero h2 {
-        font-size: clamp(38px, 10vw, 70px);
-    }
-
-    .install {
-        min-width: 0;
-        width: 100%;
-        max-width: 420px;
-    }
-}
-
-@media (max-width: 500px) {
-    .mini-points {
-        gap: 18px;
+    .ax-principles__slab > div + div {
+        border-left: 0;
+        border-top: 1px solid var(--ax-glass-border);
     }
 }
 
-.footer {
-    display: none;
+@media (max-width: 600px) {
+    .ax-hero,
+    .ax-split,
+    .ax-principles {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .ax-code {
+        padding: 1.25rem;
+        font-size: 0.8rem;
+    }
+
+    .ax-cta {
+        margin: 2rem 1rem 4rem;
+        padding: 3.5rem 1.25rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ax-logo__glow,
+    .t-cursor {
+        animation: none;
+    }
 }

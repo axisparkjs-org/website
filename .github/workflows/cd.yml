@@ -1,8 +1,10 @@
 name: CD
 
 on:
-  # Sent by the axispark repository (CD workflow) when a new version is released: the site is deployed
-  # to GitHub Pages.
+  # Sent by the axispark repository (CD workflow) when a new version is released: the guides and the API
+  # reference are saved as the documentation version of the release and the site is deployed to GitHub
+  # Pages.
+  # client_payload: `ref` (release commit of axispark) and `version` (released version, e.g. 1.5.0).
   repository_dispatch:
     types: [axispark-release]
   # Called by the CI workflow after every verified push to `main`: the API reference is generated from
@@ -20,6 +22,9 @@ jobs:
   build:
     name: Build documentation
     runs-on: ubuntu-latest
+    permissions:
+      # The release commits the new documentation version to `main`.
+      contents: write
     steps:
       - name: Checkout documentation
         uses: actions/checkout@v7
@@ -56,6 +61,35 @@ jobs:
 
       - name: Generate API documentation
         run: npm run api:generate
+
+      # Release: the current guides (docs/) and the API reference just generated (api/) become the
+      # documentation version <major>.<minor> of the release (see scripts/snapshot-version.mjs) and are
+      # committed to `main`, so the next builds keep them.
+      - name: Save documentation version
+        if: github.event_name == 'repository_dispatch'
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          if [ -z "$VERSION" ]; then
+            echo "::warning title=No version::The release event has no client_payload.version, the documentation version is not saved."
+            exit 0
+          fi
+
+          node scripts/snapshot-version.mjs "$VERSION"
+
+          git add versions.json versioned_docs versioned_sidebars api_versions.json api_versioned_docs api_versioned_sidebars
+          if git diff --cached --quiet; then
+            echo "No documentation version to commit"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: save the documentation of AxiSpark.js ${VERSION}"
+          git push
+
+      - name: Generate changelog
+        run: npm run changelog:generate
 
       - name: Build documentation
         run: npm run build

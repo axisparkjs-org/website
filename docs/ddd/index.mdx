@@ -2,6 +2,8 @@
 sidebar_position: 1
 ---
 
+import ApiLink from '@site/src/components/ApiLink';
+
 # Domain-Driven Design
 
 The `@axisparkjs/ddd` package provides small TypeScript building blocks for expressing domain concepts. Its base classes help define value objects, identifiers, entities, aggregate roots, domain events, and domain-specific exceptions. They do not persist objects or publish events; applications decide how to store aggregates and dispatch events.
@@ -18,7 +20,7 @@ Import the building blocks from the package root:
 import { AggregateRoot, DomainEvent, DomainException, Entity, Identifier, ValueObject } from '@axisparkjs/ddd';
 ```
 
-For the generated API reference, see [`@axisparkjs/ddd`](../../api/@axisparkjs/ddd/).
+For the generated API reference, see <ApiLink to="@axisparkjs/ddd/">`@axisparkjs/ddd`</ApiLink>.
 
 ## Value objects
 

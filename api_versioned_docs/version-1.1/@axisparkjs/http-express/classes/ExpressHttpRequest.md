@@ -1,0 +1,219 @@
+# Class: ExpressHttpRequest
+
+Represents an HTTP request, including method, path, URL, headers, query parameters, route parameters, body, IP address, and cookies. Provides methods to retrieve specific cookies and headers.
+
+## Implements
+
+- [`HttpRequest`](../../http/interfaces/HttpRequest.md)
+
+## Constructors
+
+### Constructor
+
+> **new ExpressHttpRequest**(`request`): `ExpressHttpRequest`
+
+#### Parameters
+
+##### request
+
+`Request`
+
+#### Returns
+
+`ExpressHttpRequest`
+
+## Accessors
+
+### body
+
+#### Get Signature
+
+> **get** **body**(): `any`
+
+##### Returns
+
+`any`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`body`](../../http/interfaces/HttpRequest.md#body)
+
+***
+
+### cookies
+
+#### Get Signature
+
+> **get** **cookies**(): `Record`\<`string`, `any`\>
+
+##### Returns
+
+`Record`\<`string`, `any`\>
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`cookies`](../../http/interfaces/HttpRequest.md#cookies)
+
+***
+
+### headers
+
+#### Get Signature
+
+> **get** **headers**(): `IncomingHttpHeaders`
+
+##### Returns
+
+`IncomingHttpHeaders`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`headers`](../../http/interfaces/HttpRequest.md#headers)
+
+***
+
+### ip
+
+#### Get Signature
+
+> **get** **ip**(): `string` \| `undefined`
+
+##### Returns
+
+`string` \| `undefined`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`ip`](../../http/interfaces/HttpRequest.md#ip)
+
+***
+
+### method
+
+#### Get Signature
+
+> **get** **method**(): `string`
+
+##### Returns
+
+`string`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`method`](../../http/interfaces/HttpRequest.md#method)
+
+***
+
+### params
+
+#### Get Signature
+
+> **get** **params**(): `ParamsDictionary`
+
+##### Returns
+
+`ParamsDictionary`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`params`](../../http/interfaces/HttpRequest.md#params)
+
+***
+
+### path
+
+#### Get Signature
+
+> **get** **path**(): `string`
+
+##### Returns
+
+`string`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`path`](../../http/interfaces/HttpRequest.md#path)
+
+***
+
+### query
+
+#### Get Signature
+
+> **get** **query**(): `Record`\<`string`, `string` \| `string`[]\>
+
+##### Returns
+
+`Record`\<`string`, `string` \| `string`[]\>
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`query`](../../http/interfaces/HttpRequest.md#query)
+
+***
+
+### session
+
+#### Get Signature
+
+> **get** **session**(): `Session` & `Partial`\<`SessionData`\>
+
+##### Returns
+
+`Session` & `Partial`\<`SessionData`\>
+
+***
+
+### url
+
+#### Get Signature
+
+> **get** **url**(): `string`
+
+##### Returns
+
+`string`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`url`](../../http/interfaces/HttpRequest.md#url)
+
+## Methods
+
+### getCookie()
+
+> **getCookie**(`name`): `string` \| `undefined`
+
+#### Parameters
+
+##### name
+
+`string`
+
+#### Returns
+
+`string` \| `undefined`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`getCookie`](../../http/interfaces/HttpRequest.md#getcookie)
+
+***
+
+### getHeader()
+
+> **getHeader**(`name`): `string` \| `string`[] \| `undefined`
+
+#### Parameters
+
+##### name
+
+`string`
+
+#### Returns
+
+`string` \| `string`[] \| `undefined`
+
+#### Implementation of
+
+[`HttpRequest`](../../http/interfaces/HttpRequest.md).[`getHeader`](../../http/interfaces/HttpRequest.md#getheader)

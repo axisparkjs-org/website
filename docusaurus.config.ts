@@ -1,6 +1,7 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import axisparkCodeTheme from './src/prism-theme';
 
 const config: Config = {
     title: 'AxiSpark.js',
@@ -27,7 +28,12 @@ const config: Config = {
             'classic',
             {
                 docs: {
-                    sidebarPath: './sidebars.ts'
+                    sidebarPath: './sidebars.ts',
+                    // Released versions are snapshots in versioned_docs/ (see versions.json). The latest one is
+                    // served at /docs, the older ones at /docs/<version> and `docs/` at /docs/next.
+                    versions: {
+                        current: { label: 'Next', path: 'next', banner: 'unreleased' }
+                    }
                 },
                 blog: {
                     showReadingTime: true,
@@ -67,8 +73,18 @@ const config: Config = {
                     position: 'left',
                     label: 'Docs'
                 },
+                {
+                    type: 'docSidebar',
+                    docsPluginId: 'api',
+                    sidebarId: 'api',
+                    position: 'left',
+                    label: 'API'
+                },
+                { to: '/changelog', label: 'Changelog', position: 'left' },
                 { to: '/blog', label: 'Blog', position: 'left' },
-                { to: '/api', label: 'API', position: 'left' },
+                // Selects the version of the guides and of the API reference at the same time
+                // (src/theme/NavbarItem/VersionDropdownNavbarItem.tsx).
+                { type: 'custom-versionDropdown', position: 'right' },
                 {
                     href: 'https://github.com/axisparkjs/axispark',
                     label: 'GitHub',
@@ -82,7 +98,7 @@ const config: Config = {
         },
         prism: {
             theme: prismThemes.github,
-            darkTheme: prismThemes.dracula
+            darkTheme: axisparkCodeTheme
         }
     } satisfies Preset.ThemeConfig,
 
@@ -94,9 +110,21 @@ const config: Config = {
                 path: 'api',
                 routeBasePath: 'api',
                 sidebarPath: './sidebars-api.ts',
-                includeCurrentVersion: true
+                includeCurrentVersion: true,
+                // Same versions as the guides (api_versions.json), so both always change together.
+                versions: {
+                    current: { label: 'Next', path: 'next', banner: 'unreleased' }
+                }
             }
         ]
+    ],
+
+    headTags: [
+        { tagName: 'link', attributes: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
+        { tagName: 'link', attributes: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' } }
+    ],
+    stylesheets: [
+        'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap'
     ],
 
     themes: ['@docusaurus/theme-mermaid'],

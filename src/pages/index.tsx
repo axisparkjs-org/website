@@ -1,324 +1,227 @@
-import type {ReactNode} from 'react';
+import React, { useState, type CSSProperties, type ReactNode } from 'react';
+import Link from '@docusaurus/Link';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import './index.css';
 
-function HomePage(): React.ReactElement {
+const INSTALL_COMMAND = 'npm install -g @axisparkjs/cli';
+
+function InstallCommand(): ReactNode {
+    const [copied, setCopied] = useState(false);
+
+    async function copy() {
+        try {
+            await navigator.clipboard.writeText(INSTALL_COMMAND);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+        } catch {
+            setCopied(false);
+        }
+    }
+
     return (
-        <>
-            <div className="hero">
+        <div className="ax-install glass">
+            <span className="ax-install__prompt" aria-hidden="true">
+                $
+            </span>
+            <code>{INSTALL_COMMAND}</code>
+            <button type="button" onClick={copy} aria-live="polite">
+                {copied ? 'Copied' : 'Copy'}
+            </button>
+        </div>
+    );
+}
 
-                <h1 className="hero-title">
-                    AxiSpark.js
-                </h1>
-                <div className="badge">
-                    <span>✦</span>
-                    The Ultimate Node.js Framework
-                </div>
+/**
+ * The logo of static/img/icon.png as a piece of frosted glass: the PNG's alpha cuts a blurred pane, the logo
+ * itself tints it with its colors, and a highlight runs across the surface. All the layers share the same
+ * square box as the PNG, so they line up whatever the size of the hero.
+ */
+function GlassLogo(): ReactNode {
+    const icon = useBaseUrl('/img/icon.png');
 
-                <h2>
-                    Build faster.
-                    <br />
-                    <span>Think sharper.</span>
-                </h2>
+    return (
+        <div className="ax-logo" style={{ '--ax-logo-mask': `url(${icon})` } as CSSProperties} aria-hidden="true">
+            <div className="ax-logo__glow" />
+            <img className="ax-logo__layer ax-logo__tint" src={icon} alt="" />
+        </div>
+    );
+}
 
-                <p className="hero-description">
-                    AxiSpark.js is a modern framework for building fast, scalable
-                    applications without unnecessary complexity.
-                </p>
-
-                <div className="hero-actions">
-                    <a href="/docs/category/getting-started" className="button primary">
-                        Get Started →
-                    </a>
-
-                    <a href="/docs/intro" className="button secondary">
-                        Documentation
-                    </a>
-                </div>
-
-                <div className="install">
-                    <span className="prompt">$</span>
-                    <span>npm install -g @axisparkjs/cli</span>
-                    <button aria-label="Copy command">⌘</button>
-                </div>
+function CodeWindow(): ReactNode {
+    return (
+        <div className="ax-window glass">
+            <div className="ax-window__bar">
+                <span className="ax-window__dots" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                </span>
+                <span>app.ts</span>
             </div>
+            <pre className="ax-code">
+                <code>
+                    <span className="t-key">import</span> {'{ '}
+                    <span className="t-fn">AxiSparkFactory</span>
+                    {' } '}
+                    <span className="t-key">from</span> <span className="t-str">'@axisparkjs/core'</span>;{'\n'}
+                    <span className="t-key">import</span> {'{ '}
+                    <span className="t-fn">HttpPlugin</span>
+                    {' } '}
+                    <span className="t-key">from</span> <span className="t-str">'@axisparkjs/http'</span>;{'\n'}
+                    <span className="t-key">import</span> {'{ '}
+                    <span className="t-fn">HttpPluginOptionsFactory</span>
+                    {' } '}
+                    <span className="t-key">from</span> <span className="t-str">'@axisparkjs/http-express'</span>;{'\n'}
+                    {'\n'}
+                    <span className="t-key">export const</span> <span className="t-var">app</span> <span className="t-op">=</span>{' '}
+                    <span className="t-fn">AxiSparkFactory</span>.<span className="t-fn">create</span>();{'\n'}
+                    {'\n'}
+                    <span className="t-var">app</span>.<span className="t-fn">use</span>({'\n'}
+                    {'    '}
+                    <span className="t-fn">HttpPlugin</span>,{'\n'}
+                    {'    '}
+                    <span className="t-fn">HttpPluginOptionsFactory</span>.<span className="t-fn">create</span>({'{'}
+                    {'\n'}
+                    {'        '}
+                    <span className="t-prop">basePath</span>: <span className="t-str">'/api'</span>
+                    {'\n'}
+                    {'    '}
+                    {'})'}
+                    {'\n'});
+                </code>
+            </pre>
+        </div>
+    );
+}
 
-            <div className="spark-background">
-                <div className="spark spark-1" />
-                <div className="spark spark-2" />
-                <div className="spark spark-3" />
-                <div className="spark spark-4" />
+function Terminal(): ReactNode {
+    return (
+        <div className="ax-window ax-terminal glass">
+            <div className="ax-window__bar">
+                <span className="ax-window__dots" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                </span>
+                <span>terminal</span>
             </div>
+            <pre className="ax-code">
+                <code>
+                    <span className="t-prompt">$</span> npm install -g @axisparkjs/cli{'\n'}
+                    <span className="t-prompt">$</span> axispark create my-app{'\n'}
+                    <span className="t-ok">✓</span> Project created{'\n'}
+                    <span className="t-ok">✓</span> Dependencies installed{'\n'}
+                    <span className="t-ok">✓</span> Configuration ready{'\n'}
+                    {'\n'}
+                    <span className="t-dim">Local:</span> Application started{'\n'}
+                    <span className="t-cursor" aria-hidden="true">
+                        ▍
+                    </span>
+                </code>
+            </pre>
+        </div>
+    );
+}
 
-            <section className="code-section">
-                <div className="code-copy">
-                    <div className="section-label">A FAMILIAR EXPERIENCE</div>
-
-                    <h2>
-                        JavaScript
+function HomePage(): ReactNode {
+    return (
+        <div className="ax-home">
+            <section className="ax-hero">
+                <div className="ax-hero__copy">
+                    <p className="ax-pill glass">The Ultimate Node.js Framework</p>
+                    <h1 className="ax-hero__title">AxiSpark.js</h1>
+                    <p className="ax-hero__claim">
+                        Build faster.
                         <br />
-                        <span>without the friction.</span>
-                    </h2>
-
-                    <p>
-                        If you know JavaScript or TypeScript, you already know most of
-                        what you need to start building with AxiSpark.
+                        Think sharper.
                     </p>
-
-                    <a href="/docs/category/getting-started" className="text-link">
-                        Start building →
-                    </a>
+                    <p className="ax-lead">AxiSpark.js is a modern framework for building fast, scalable applications without unnecessary complexity.</p>
+                    <div className="ax-actions">
+                        <Link className="ax-button ax-button--primary" to="/docs/category/getting-started">
+                            Get started
+                        </Link>
+                        <Link className="ax-button ax-button--glass glass" to="/docs/intro">
+                            Read the docs
+                        </Link>
+                    </div>
+                    <InstallCommand />
                 </div>
+                <GlassLogo />
+            </section>
 
-                <div className="code-window">
-                    <div className="window-header">
-                        <div className="window-dots">
-                            <span />
-                            <span />
-                            <span />
-                        </div>
+            <section className="ax-split">
+                <div className="ax-split__copy">
+                    <p className="ax-kicker">A familiar experience</p>
+                    <h2>JavaScript without the friction.</h2>
+                    <p>If you know JavaScript or TypeScript, you already know most of what you need to start building with AxiSpark.js.</p>
+                    <Link className="ax-link" to="/docs/category/getting-started">
+                        Start building
+                    </Link>
+                </div>
+                <CodeWindow />
+            </section>
 
-                        <div className="window-title">app.ts</div>
-                    </div>
-
-                    <div className="code">
-                        <div>
-                            <span className="keyword">import</span>{" "}
-                            <span className="bracket">{"{"}</span>{" "}
-                            <span className="function">AxiSparkFactory</span>{" "}
-                            <span className="bracket">{"}"}</span>{" "}
-                            <span className="keyword">from</span>{" "}
-                            <span className="string">'@axisparkjs/core'</span>;
-                        </div>
-
-                        <div>
-                            <span className="keyword">import</span>{" "}
-                            <span className="bracket">{"{"}</span>{" "}
-                            <span className="function">HttpPlugin</span>{" "}
-                            <span className="bracket">{"}"}</span>{" "}
-                            <span className="keyword">from</span>{" "}
-                            <span className="string">'@axisparkjs/http'</span>;
-                        </div>
-
-                        <div>
-                            <span className="keyword">import</span>{" "}
-                            <span className="bracket">{"{"}</span>{" "}
-                            <span className="function">HttpPluginOptionsFactory</span>{" "}
-                            <span className="bracket">{"}"}</span>{" "}
-                            <span className="keyword">from</span>{" "}
-                            <span className="string">'@axisparkjs/http-express'</span>;
-                        </div>
-
-                        <div>&nbsp;</div>
-
-                        <div>
-                            <span className="keyword">export const</span>{" "}
-                            <span className="variable">app</span>{" "}
-                            <span className="operator">=</span>{" "}
-                            <span className="function">AxiSparkFactory.create</span>
-                            <span className="bracket">{"()"}</span>;
-                        </div>
-
-                        <div>&nbsp;</div>
-
-                        <div>
-                            <span className="variable">app</span>.
-                            <span className="function">use</span>
-                            <span className="bracket">{"("}</span>
-                        </div>
-
-                        <div className="indent">
-                            <span className="function">HttpPlugin</span>,
-                        </div>
-
-                        <div className="indent">
-                            <span className="function">HttpPluginOptionsFactory.create</span>
-                            <span className="bracket">{"({"}</span>
-                        </div>
-
-                        <div className="indent-2">
-                            <span className="property">basePath</span>:{" "}
-                            <span className="string">'/api'</span>
-                        </div>
-
-                        <div className="indent">
-                            <span className="bracket">{"})"}</span>
-                        </div>
-
-                        <div>
-                            <span className="bracket">{")"}</span>;
-                        </div>
-                    </div>
+            <section className="ax-split ax-split--reverse">
+                <Terminal />
+                <div className="ax-split__copy">
+                    <p className="ax-kicker">Zero friction</p>
+                    <h2>From zero to running.</h2>
+                    <p>Create a project, start the development server and get straight to work.</p>
+                    <ol className="ax-steps">
+                        <li>Create</li>
+                        <li>Build</li>
+                        <li>Ship</li>
+                    </ol>
                 </div>
             </section>
 
-            <section className="terminal-section">
-                <div className="terminal">
-                    <div className="terminal-header">
-                        <div className="terminal-dots">
-                            <span />
-                            <span />
-                            <span />
-                        </div>
-
-                        <span>terminal</span>
-                    </div>
-
-                    <div className="terminal-body">
-                        <div>
-                            <span className="terminal-prompt">$</span>{" "}
-                            npm install -g @axispark/cli
-                        </div>
-                        <div>
-                            <span className="terminal-prompt">$</span>{" "}
-                            axispark create my-app
-                        </div>
-
-                        <div className="terminal-success">
-                            ✓ Project created
-                        </div>
-
-                        <div className="terminal-success">
-                            ✓ Dependencies installed
-                        </div>
-
-                        <div className="terminal-success">
-                            ✓ Configuration ready
-                        </div>
-
-                        <div>&nbsp;</div>
-
-                        <div>
-                            <span className="terminal-muted">Local:</span>{" "}
-                            <span>Application started</span>
-                        </div>
-
-                        <div className="terminal-cursor">█</div>
-                    </div>
-                </div>
-
-                <div className="terminal-copy">
-                    <div className="section-label">ZERO FRICTION</div>
-
-                    <h2>
-                        From zero
-                        <br />
-                        <span>to running.</span>
-                    </h2>
-
-                    <p>
-                        Create a project, start the development server and get straight
-                        to work.
-                    </p>
-
-                    <div className="mini-points">
-                        <div>
-                            <strong>01</strong>
-                            <span>Create</span>
-                        </div>
-
-                        <div>
-                            <strong>02</strong>
-                            <span>Build</span>
-                        </div>
-
-                        <div>
-                            <strong>03</strong>
-                            <span>Ship</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="principles">
-                <div className="section-label">THE AXISPARK WAY</div>
-
-                <h2>
-                    The framework should
-                    <br />
-                    <span>remove complexity.</span>
-                </h2>
-
-                <p className="principle-lead">Not add it.</p>
-
-                <div className="principle-grid">
+            <section className="ax-principles">
+                <p className="ax-kicker">The AxiSpark way</p>
+                <h2>The framework should remove complexity. Not add it.</h2>
+                <div className="ax-principles__slab glass">
                     <div>
-                        <span className="number">01</span>
-
                         <h3>Stay close to the platform</h3>
-
-                        <p>
-                            Use the web platform instead of hiding it behind layers of
-                            unnecessary abstraction.
-                        </p>
+                        <p>Use the web platform instead of hiding it behind layers of unnecessary abstraction.</p>
                     </div>
-
                     <div>
-                        <span className="number">02</span>
-
                         <h3>Make the common path easy</h3>
-
-                        <p>
-                            Sensible defaults should make simple things simple while
-                            keeping advanced use cases possible.
-                        </p>
+                        <p>Sensible defaults make simple things simple while keeping advanced use cases possible.</p>
                     </div>
-
                     <div>
-                        <span className="number">03</span>
-
                         <h3>Keep the core small</h3>
-
-                        <p>
-                            A focused foundation is easier to learn, maintain and extend.
-                        </p>
+                        <p>A focused foundation is easier to learn, maintain and extend.</p>
                     </div>
                 </div>
             </section>
 
-            <section className="cta">
-                <div className="cta-spark">✦</div>
-
-                <div className="section-label">START BUILDING</div>
-
-                <h2>
-                    Your next project
-                    <br />
-                    <span>starts here.</span>
-                </h2>
-
-                <p>
-                    No unnecessary complexity.
-                    <br />
-                    No configuration maze.
-                    <br />
-                    Just build.
-                </p>
-
-                <div className="cta-actions">
-                    <a href="/docs/category/getting-started" className="button primary">
-                        Get Started →
-                    </a>
-
-                    <a href="https://github.com/axisparkjs/axispark" className="button secondary">
-                        View GitHub ↗
-                    </a>
+            <section className="ax-cta glass">
+                <h2>Your next project starts here.</h2>
+                <p>No configuration maze. Create a project and start writing your application.</p>
+                <div className="ax-actions">
+                    <Link className="ax-button ax-button--primary" to="/docs/category/getting-started">
+                        Get started
+                    </Link>
+                    <Link className="ax-button ax-button--glass glass" href="https://github.com/axisparkjs/axispark">
+                        View on GitHub
+                    </Link>
                 </div>
             </section>
-        </>
+        </div>
     );
 }
 
 export default function Home(): ReactNode {
-  const {siteConfig} = useDocusaurusContext();
-  return (
-    <Layout
-      title={`${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
-      <main>
-        <HomePage />
-      </main>
-    </Layout>
-  );
+    const { siteConfig } = useDocusaurusContext();
+    return (
+        <Layout
+            title={siteConfig.title}
+            description="AxiSpark.js is a Node.js framework for building fast, scalable applications with HTTP, WebSocket, messaging, data and scheduling plugins."
+        >
+            <main>
+                <HomePage />
+            </main>
+        </Layout>
+    );
 }

@@ -1,32 +1,462 @@
-/**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+/*
+ * AxiSpark.js theme: "spark glass".
+ *
+ * Frosted glass panels over a night-blue field lit by the two colors of the logo: the mustard of the
+ * letters (gold) and the orange of their outline (ember). Glass needs light behind it, so the page
+ * background carries a few soft glows; the reading surface of the docs stays calm and solid.
+ *
+ * The site is dark only (colorMode.disableSwitch in docusaurus.config.ts).
  */
 
-/* You can override the default Infima variables here. */
 :root {
-    --ifm-color-primary: #e1b83c;
-    --ifm-color-primary-dark: #d1a32e;
-    --ifm-color-primary-darker: #c18f1f;
-    --ifm-color-primary-darkest: #b17b10;
-    --ifm-color-primary-light: #f0d98c;
-    --ifm-color-primary-lighter: #f2e09c;
-    --ifm-color-primary-lightest: #f5e8ad;
-    --ifm-code-font-size: 95%;
-    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
-    --ifm-hero-background: radial-gradient(circle at 50% 45%, rgba(255, 190, 60, 0.12), transparent 32%), #f5f5f5;
+    /* Palette */
+    --ax-night: #0d1124;
+    --ax-night-deep: #080a16;
+    --ax-gold: #e8bc3f;
+    --ax-ember: #ee6a24;
+    --ax-text: #e6e9f5;
+    --ax-text-muted: #9aa2bf;
+
+    /* Glass material */
+    --ax-glass-bg: rgba(255, 255, 255, 0.055);
+    --ax-glass-bg-strong: rgba(18, 22, 44, 0.72);
+    --ax-glass-border: rgba(255, 255, 255, 0.1);
+    --ax-glass-highlight: rgba(255, 255, 255, 0.2);
+    --ax-glass-blur: blur(18px) saturate(1.5);
+    --ax-glass-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.65);
+
+    /* Type */
+    --ax-font-display: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
+    --ax-font-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ax-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* Infima */
+    --ifm-color-primary: #e8bc3f;
+    --ifm-color-primary-dark: #e3b021;
+    --ifm-color-primary-darker: #d6a51b;
+    --ifm-color-primary-darkest: #b08816;
+    --ifm-color-primary-light: #ecc75d;
+    --ifm-color-primary-lighter: #eecc6b;
+    --ifm-color-primary-lightest: #f3da94;
+    --ifm-font-family-base: var(--ax-font-body);
+    --ifm-heading-font-family: var(--ax-font-display);
+    --ifm-font-family-monospace: var(--ax-font-mono);
+    --ifm-code-font-size: 90%;
+    --ifm-global-radius: 12px;
+    --ifm-navbar-height: 4rem;
+    --docusaurus-highlighted-code-line-bg: rgba(232, 188, 63, 0.12);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-    --ifm-color-primary: #e1b83c;
-    --ifm-color-primary-dark: #d1a32e;
-    --ifm-color-primary-darker: #c18f1f;
-    --ifm-color-primary-darkest: #b17b10;
-    --ifm-color-primary-light: #f0d98c;
-    --ifm-color-primary-lighter: #f2e09c;
-    --ifm-color-primary-lightest: #f5e8ad;
-    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
-    --ifm-hero-background: radial-gradient(circle at 50% 45%, rgba(255, 190, 60, 0.12), transparent 32%), #050505;
+    --ifm-background-color: var(--ax-night-deep);
+    --ifm-background-surface-color: var(--ax-night);
+    --ifm-font-color-base: var(--ax-text);
+    --ifm-color-content: var(--ax-text);
+    --ifm-color-content-secondary: var(--ax-text-muted);
+    --ifm-heading-color: #f4f6fc;
+    --ifm-toc-border-color: var(--ax-glass-border);
+    --ifm-hr-border-color: var(--ax-glass-border);
+    --ifm-table-border-color: var(--ax-glass-border);
+    --ifm-table-stripe-background: rgba(255, 255, 255, 0.025);
+    --ifm-code-background: rgba(255, 255, 255, 0.07);
+    --ifm-menu-color: var(--ax-text-muted);
+    --ifm-menu-color-active: var(--ax-gold);
+    --ifm-menu-color-background-active: rgba(232, 188, 63, 0.09);
+    --ifm-menu-color-background-hover: rgba(255, 255, 255, 0.05);
+    --ifm-navbar-background-color: rgba(10, 13, 28, 0.62);
+    --ifm-navbar-link-color: var(--ax-text-muted);
+    --ifm-navbar-link-hover-color: var(--ax-text);
+    --ifm-dropdown-background-color: var(--ax-glass-bg-strong);
+    --ifm-card-background-color: var(--ax-glass-bg);
+    --ifm-breadcrumb-item-background-active: rgba(232, 188, 63, 0.1);
+    --prism-background-color: rgba(6, 8, 20, 0.72);
+    --docusaurus-highlighted-code-line-bg: rgba(232, 188, 63, 0.12);
+}
+
+/* Field of light ---------------------------------------------------------- */
+
+/* The color goes on html: a background on body would be painted over the light layer (body::before). */
+html[data-theme='dark'] {
+    background-color: var(--ax-night-deep);
+}
+
+html[data-theme='dark'] body {
+    background: transparent;
+    color: var(--ax-text);
+}
+
+/* Fixed behind everything, so glass panels always have something to blur. Fainter on docs pages. */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(48rem 32rem at 82% -6%, rgba(238, 106, 36, 0.16), transparent 70%),
+        radial-gradient(40rem 30rem at -8% 18%, rgba(232, 188, 63, 0.12), transparent 70%),
+        radial-gradient(50rem 40rem at 50% 115%, rgba(96, 112, 230, 0.14), transparent 70%),
+        linear-gradient(180deg, var(--ax-night) 0%, var(--ax-night-deep) 70%);
+}
+
+.main-wrapper {
+    position: relative;
+    isolation: isolate;
+}
+
+::selection {
+    background: rgba(232, 188, 63, 0.35);
+    color: #fff;
+}
+
+/* Glass material ---------------------------------------------------------- */
+
+.glass {
+    border: 1px solid var(--ax-glass-border);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025) 55%), var(--ax-glass-bg);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    box-shadow:
+        inset 0 1px 0 var(--ax-glass-highlight),
+        var(--ax-glass-shadow);
+}
+
+/* Navbar ------------------------------------------------------------------ */
+
+.navbar {
+    border-bottom: 1px solid var(--ax-glass-border);
+    background: transparent;
+    box-shadow: none;
+}
+
+/* The glass of the bar goes on a layer of its own: a backdrop-filter on .navbar would make it the containing
+   block of the mobile menu (.navbar-sidebar, position: fixed), which would be cut to the height of the bar. */
+.navbar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--ifm-navbar-background-color);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+}
+
+.navbar__title {
+    font-family: var(--ax-font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.navbar__link {
+    font-weight: 500;
+    border-radius: 10px;
+}
+
+.navbar__link--active {
+    color: var(--ax-text);
+}
+
+/* Active section: a short gold line under the link, the only colored mark in the bar. */
+.navbar__items:not(.navbar__items--right) > .navbar__link--active {
+    box-shadow: inset 0 -2px 0 var(--ax-gold);
+    border-radius: 0;
+}
+
+.dropdown__menu {
+    padding: 0.4rem;
+    border: 1px solid var(--ax-glass-border);
+    border-radius: 14px;
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    box-shadow:
+        inset 0 1px 0 var(--ax-glass-highlight),
+        var(--ax-glass-shadow);
+}
+
+.dropdown__link {
+    border-radius: 9px;
+    color: var(--ax-text-muted);
+}
+
+.dropdown__link--active {
+    background: rgba(232, 188, 63, 0.12);
+    color: var(--ax-gold);
+}
+
+/* Separator of the version selector (src/theme/NavbarItem/VersionDropdownNavbarItem.tsx). */
+.dropdown-separator {
+    margin: 0.35rem 0.5rem;
+    border: 0;
+    border-top: 1px solid var(--ax-glass-border);
+}
+
+.navbar-sidebar {
+    background: var(--ax-glass-bg-strong);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+}
+
+/* Docs layout ------------------------------------------------------------- */
+
+.theme-doc-sidebar-container {
+    border-right-color: var(--ax-glass-border) !important;
+    background: rgba(8, 10, 22, 0.35);
+}
+
+.menu__link {
+    border-radius: 10px;
+    font-size: 0.925rem;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--ax-gold);
+}
+
+.menu__caret,
+.menu__link--sublist-caret {
+    border-radius: 10px;
+}
+
+.theme-doc-markdown {
+    font-size: 1.025rem;
+    line-height: 1.75;
+}
+
+.theme-doc-markdown h1 {
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+}
+
+.theme-doc-markdown h2 {
+    margin-top: 2.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.theme-doc-markdown h3 {
+    font-weight: 650;
+}
+
+.theme-doc-markdown a:not(.hash-link):not(.card) {
+    text-decoration: underline;
+    text-decoration-color: rgba(232, 188, 63, 0.4);
+    text-underline-offset: 0.22em;
+}
+
+.theme-doc-markdown a:not(.hash-link):not(.card):hover {
+    text-decoration-color: currentColor;
+}
+
+.breadcrumbs__link {
+    border-radius: 999px;
+}
+
+.badge {
+    border-radius: 999px;
+}
+
+.theme-doc-version-badge {
+    border: 1px solid var(--ax-glass-border);
+    background: var(--ax-glass-bg);
+    color: var(--ax-text-muted);
+    font-weight: 500;
+}
+
+/* Inline code and code blocks */
+
+code {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+}
+
+.theme-code-block {
+    border: 1px solid var(--ax-glass-border);
+    border-radius: 14px;
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 18px 40px -24px rgba(0, 0, 0, 0.7);
+}
+
+.theme-code-block code {
+    border: 0;
+}
+
+[class*='codeBlockTitle'] {
+    border-bottom: 1px solid var(--ax-glass-border) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: var(--ax-text-muted);
+    font-family: var(--ax-font-mono);
+    font-size: 0.8rem !important;
+}
+
+/* Admonitions: glass panes tinted by their own color. */
+
+.theme-admonition {
+    border: 1px solid var(--ax-glass-border);
+    border-left-width: 1px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--ax-admonition-tint, rgba(255, 255, 255, 0.06)), rgba(255, 255, 255, 0.02) 60%);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    box-shadow: inset 3px 0 0 var(--ax-admonition-edge, var(--ax-text-muted));
+    color: var(--ax-text);
+}
+
+.alert--info {
+    --ax-admonition-tint: rgba(110, 140, 255, 0.14);
+    --ax-admonition-edge: #8ea2ff;
+}
+.alert--success {
+    --ax-admonition-tint: rgba(120, 200, 140, 0.12);
+    --ax-admonition-edge: #8fd19e;
+}
+.alert--warning {
+    --ax-admonition-tint: rgba(232, 188, 63, 0.14);
+    --ax-admonition-edge: var(--ax-gold);
+}
+.alert--danger {
+    --ax-admonition-tint: rgba(238, 106, 36, 0.16);
+    --ax-admonition-edge: var(--ax-ember);
+}
+.alert--secondary {
+    --ax-admonition-tint: rgba(255, 255, 255, 0.06);
+}
+
+/* "Unmaintained" and "unreleased" banners of old and next versions: same glass as a warning admonition. */
+.theme-doc-version-banner {
+    border: 1px solid var(--ax-glass-border);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(232, 188, 63, 0.16), rgba(255, 255, 255, 0.02) 60%);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    box-shadow: inset 3px 0 0 var(--ax-gold);
+    color: var(--ax-text);
+}
+
+.theme-doc-version-banner a {
+    color: var(--ax-gold);
+}
+
+/* Thin scrollbars, so wide code blocks don't get a heavy bar under them. */
+.theme-code-block pre,
+.table-of-contents,
+.theme-doc-sidebar-menu {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* Tables */
+
+.theme-doc-markdown table {
+    display: table;
+    width: 100%;
+    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--ax-glass-border);
+    border-radius: 14px;
+    background: var(--ax-glass-bg);
+}
+
+.theme-doc-markdown th {
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+    text-align: left;
+}
+
+.theme-doc-markdown th,
+.theme-doc-markdown td {
+    border: 0;
+    border-bottom: 1px solid var(--ax-glass-border);
+}
+
+.theme-doc-markdown tr:last-child td {
+    border-bottom: 0;
+}
+
+.theme-doc-markdown thead tr {
+    border: 0;
+}
+
+/* Table of contents: the current heading is marked with the gold line. */
+
+.table-of-contents {
+    font-size: 0.85rem;
+}
+
+.table-of-contents__link {
+    color: var(--ax-text-muted);
+}
+
+.table-of-contents__link--active {
+    color: var(--ax-gold);
+    font-weight: 600;
+}
+
+/* Cards: category indexes and previous/next */
+
+.card,
+.pagination-nav__link {
+    border: 1px solid var(--ax-glass-border) !important;
+    border-radius: 16px;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02) 60%);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transition: border-color 0.2s ease;
+}
+
+.card:hover,
+.pagination-nav__link:hover {
+    border-color: rgba(232, 188, 63, 0.45) !important;
+}
+
+.pagination-nav__sublabel {
+    color: var(--ax-text-muted);
+}
+
+/* Footer */
+
+.footer--dark {
+    border-top: 1px solid var(--ax-glass-border);
+    background: rgba(8, 10, 22, 0.55);
+    -webkit-backdrop-filter: var(--ax-glass-blur);
+    backdrop-filter: var(--ax-glass-blur);
+    --ifm-footer-background-color: transparent;
+    --ifm-footer-padding-vertical: 1.5rem;
+}
+
+.footer__copyright {
+    color: var(--ax-text-muted);
+    font-size: 0.85rem;
+}
+
+/* Blog */
+
+.blog-post-page article header h1,
+article h2[class*='title'] {
+    letter-spacing: -0.03em;
+}
+
+/* Accessibility ----------------------------------------------------------- */
+
+:focus-visible {
+    outline: 2px solid var(--ax-gold);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass,
+    .dropdown__menu,
+    .theme-code-block,
+    .card,
+    .pagination-nav__link {
+        background: var(--ax-glass-bg-strong);
+    }
 }
