@@ -1,6 +1,16 @@
 name: CD
 
 on:
+  workflow_dispatch:
+    inputs:
+      group:
+        description: "Type of deployment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - pages
+        default: staging
   # Sent by the axispark repository (CD workflow) when a new version is released: the guides and the API
   # reference are saved as the documentation version of the release and the site is deployed to GitHub
   # Pages.
@@ -12,7 +22,7 @@ on:
   workflow_call:
 
 concurrency:
-  group: ${{ github.event_name == 'repository_dispatch' && 'pages' || 'staging' }}
+  group: ${{ github.event_name == 'repository_dispatch' && 'pages' || github.event.inputs.group || 'staging' }}
   cancel-in-progress: false
 
 env:
