@@ -4,7 +4,7 @@ sidebar_position: 8
 
 # Stores
 
-Some features keep state between requests or executions: the rate limits count the requests of each client, and the exclusive jobs of the scheduler hold a lock while they run. That state is kept in a **store**.
+Some features keep state between requests or executions: the rate limits count the requests of each client, the exclusive jobs of the scheduler hold a lock while they run, and the cached handlers keep their results. That state is kept in a **store**.
 
 Every feature uses an **in-memory store by default**, so it works without any configuration. The in-memory stores are local to the process: when the application runs on several instances, each instance has its own counters and locks. To share them, pass a shared store in the options of the plugin, such as `RedisStore` from `@axisparkjs/redis`:
 
@@ -47,9 +47,10 @@ The `context` contains the dependency injection `container` and the `logger` of 
 | --- | --- | --- | --- |
 | HTTP | `rateLimitOptions.store` | `rate-limit` | `MemoryStore()` |
 | WebSocket | `rateLimitOptions.store` | `rate-limit` | `MemoryStore()` |
+| HTTP | `cacheOptions.store` | `cache` | `MemoryStore()` |
 | Schedule | `lockStore` | `lock` | `MemoryStore()` |
 
-The `cache` kind has no consumer in the framework yet. Your own plugins can create a cache store from a provider, as shown in [using stores in your own plugins](#using-stores-in-your-own-plugins).
+The HTTP plugin keeps in the `cache` store the results of the handlers decorated with `@Cache()`. See [Cache](../engine-system/cache) and [HTTP caching](../http-plugin/caching). Your own plugins can also create a cache store from a provider, as shown in [using stores in your own plugins](#using-stores-in-your-own-plugins).
 
 ## Available providers
 
@@ -114,6 +115,8 @@ interface CacheStore {
     delete(key: string): Promise<void>;
 }
 ```
+
+See [Cache](../engine-system/cache#keys-and-eviction) for how the cached results of the handlers are stored.
 
 ## Using stores in your own plugins
 

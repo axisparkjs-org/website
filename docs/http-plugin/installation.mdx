@@ -201,6 +201,8 @@ export interface HttpPluginOptions extends PluginOptions {
     rateLimit?: boolean;
     /** Default rate limits applied to endpoints without decorator overrides. */
     rateLimitOptions?: RateLimitOptions;
+    /** Default time to live and store of the results of the handlers decorated with @Cache(). See Caching. */
+    cacheOptions?: CacheOptions;
     /** Whether to use the file upload (multipart/form-data) middleware. Disabled by default. */
     fileUpload?: boolean;
     /** Default file upload limits applied to endpoints without decorator overrides. */

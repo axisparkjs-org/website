@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Redis
 
-The Redis plugin creates and manages named Redis connections for your application, so caching, shared state, locks or pub/sub clients follow the plugin lifecycle: they are configured in the plugin options, injected by name, reported by the health engine and closed when the application stops. It also provides [Redis stores](#stores) to share the rate limits and the locks of the exclusive jobs between the instances of the application. It is built on [`node-redis`](https://github.com/redis/node-redis) (the `redis` package), so client options, commands and reconnection behavior follow that library. See its [documentation](https://redis.io/docs/latest/develop/clients/nodejs/) for details on using the client directly.
+The Redis plugin creates and manages named Redis connections for your application, so caching, shared state, locks or pub/sub clients follow the plugin lifecycle: they are configured in the plugin options, injected by name, reported by the health engine and closed when the application stops. It also provides [Redis stores](#stores) to share the rate limits, the locks of the exclusive jobs and the cached results of the handlers between the instances of the application. It is built on [`node-redis`](https://github.com/redis/node-redis) (the `redis` package), so client options, commands and reconnection behavior follow that library. See its [documentation](https://redis.io/docs/latest/develop/clients/nodejs/) for details on using the client directly.
 
 ## Install
 
@@ -139,10 +139,13 @@ const redis = RedisStore('MAIN', { prefix: 'myapp:' });
 
 app.use(RedisPlugin, RedisPluginOptionsFactory.create({ connections: [{ name: 'MAIN', url: 'redis://localhost:6379' }] }));
 app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: redis }));
-app.use(HttpPlugin, HttpPluginOptionsFactory.create({ rateLimit: true, rateLimitOptions: { ttl: 60_000, limit: 100, store: redis } }));
+app.use(
+    HttpPlugin,
+    HttpPluginOptionsFactory.create({ rateLimit: true, rateLimitOptions: { ttl: 60_000, limit: 100, store: redis }, cacheOptions: { store: redis } })
+);
 ```
 
-The first argument is the name of a connection in `connections`. The only option is `prefix`, which is added before every key, followed by the kind of store: with `prefix: 'myapp:'`, the rate limit keys start with `myapp:rate-limit:` and the locks with `myapp:lock:`. Use a different prefix for each application that shares the same Redis database.
+The first argument is the name of a connection in `connections`. The only option is `prefix`, which is added before every key, followed by the kind of store: with `prefix: 'myapp:'`, the rate limit keys start with `myapp:rate-limit:`, the locks with `myapp:lock:` and the cached results with `myapp:cache:`. Use a different prefix for each application that shares the same Redis database.
 
 | Kind | Class | How it is stored |
 | --- | --- | --- |
@@ -153,7 +156,7 @@ The first argument is the name of a connection in `connections`. The only option
 The stores use the connection, but they never open or close it: the plugin manages its lifecycle. The plugins create their stores when they start, after the Redis connections are registered, so the order of the plugins does not matter. Two errors are specific to these stores:
 
 - `RedisStoreConnectionNotFoundError`: the connection is not configured in the `RedisPlugin`. The application fails to start.
-- `RedisStoreConnectionNotReadyError`: an operation was received while the connection is not ready, for example while it reconnects. The operation is rejected instead of being queued until the connection is ready again, so the HTTP requests and the jobs never wait for Redis indefinitely.
+- `RedisStoreConnectionNotReadyError`: an operation was received while the connection is not ready, for example while it reconnects. The operation is rejected instead of being queued until the connection is ready again, so the HTTP requests and the jobs never wait for Redis indefinitely. The [cached handlers](../engine-system/cache) run without cache while the store fails.
 
 ## Pub/Sub
 
