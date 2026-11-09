@@ -1,8 +1,0 @@
-{
-    "label": "Telemetry",
-    "position": 10,
-    "link": {
-        "type": "generated-index",
-        "description": "The Telemetry Plugin instruments AxiSpark.js with OpenTelemetry: traces and metrics for every handler, the scheduled jobs, the rate limits, the stores and the health checks, exported to the backend of your choice."
-    }
-}
