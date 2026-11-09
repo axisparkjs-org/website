@@ -127,7 +127,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: build
-    if: github.event_name == 'repository_dispatch'
+    if: github.event_name == 'repository_dispatch' || github.event.inputs.group == 'pages'
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -143,7 +143,7 @@ jobs:
   staging:
     name: Publish staging image
     needs: build
-    if: github.event_name != 'repository_dispatch'
+    if: github.event_name != 'repository_dispatch' && github.event.inputs.group == 'staging'
     runs-on: ubuntu-latest
     permissions:
       contents: read
