@@ -90,6 +90,36 @@ export class Component {
 }
 ```
 
+### Token identity
+
+The container identifies a token by the instance, not by its name. Two classes with the same name, such as `UserService` in a `v1` and in a `v2` folder, are two different tokens and resolve to their own instances. In the same way, every `new InjectionToken(...)` creates a different token, even when two tokens have the same description: the description is only used in error messages and logs.
+
+So create each token once, export it, and import it wherever it is bound or injected. Creating a second `InjectionToken` with the same description does not give access to the value of the first one:
+
+```ts
+const FIRST = new InjectionToken('CONFIG');
+const SECOND = new InjectionToken('CONFIG');
+
+container.bind({ token: FIRST, useValue: 'one' });
+container.bind({ token: SECOND, useValue: 'two' });
+
+await container.resolve(FIRST); // 'one'
+await container.resolve(SECOND); // 'two'
+```
+
+When a token depends on a value that is only known at runtime, such as the name of a connection, use `createTokenFactory`. It returns a function that gives the same token for the same key, so the code that binds the provider and the code that injects it share the token:
+
+```ts title="tokens.ts"
+import { createTokenFactory, Inject } from '@axisparkjs/di';
+
+export const connectionToken = createTokenFactory((name: string) => `CONNECTION_${name}`);
+export const InjectConnection = (name: string) => Inject(connectionToken(name));
+
+connectionToken('MAIN') === connectionToken('MAIN'); // true
+```
+
+The keys are compared by identity too, so a factory whose keys are classes gives different tokens to two classes with the same name.
+
 ## Injection Scopes
 
 AxiSpark.js supports different injection scopes, which determine the lifecycle of the injected dependencies. The available scopes are:

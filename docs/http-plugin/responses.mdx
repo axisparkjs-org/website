@@ -135,6 +135,24 @@ export class UserController {
 
 > There are also multiple classes available for creating custom responses, such as `BodyHttpResult`, `RedirectHttpResult`, `ErrorHttpResult`, and more. You can use these classes to create responses with different content types and response bodies.
 
+### Files and streams
+
+`HttpResults.Download(filePath, filename, contentType?)` and `HttpResults.Stream(stream, filename?, contentType?)` send a file or a stream as an attachment. When a file name is given, it is written in the `Content-Disposition` header as described by RFC 6266:
+
+- `filename` has an ASCII version of the name: the characters outside ASCII are replaced with `?`, and the double quotes are escaped.
+- `filename*` has the real name encoded in UTF-8 (RFC 8187), and is added when the name is not plain ASCII. Current browsers use it, so the file is saved with its real name.
+- The control characters, such as line breaks, and the path separators (`/` and `\`) are removed, so a name taken from user data, such as the name of an uploaded document, always produces a valid header.
+
+```ts
+@Get('report')
+report() {
+    return HttpResults.Download(reportPath, 'informe "año".txt');
+}
+// Content-Disposition: attachment; filename="informe \"a?o\".txt"; filename*=UTF-8''informe%20%22a%C3%B1o%22.txt
+```
+
+The `contentDisposition(filename, type?)` helper of `@axisparkjs/http` builds the same header, with the `attachment` or the `inline` type, for the responses that you send manually.
+
 ## Manual Response Handling
 
 If none of the above methods suit your needs, you can manually handle the response by using the `HttpResponse` object provided by the Http Plugin. This allows you to have complete control over the response, including setting custom headers, status codes, and response bodies. You can access the `HttpResponse` object by injecting it into your controller method with the `@Response` decorator. Important, in case you use this method, you must return `HandledResult` to indicate that the response has been handled manually and that the Http Plugin should not attempt to send a response automatically.
@@ -174,6 +192,30 @@ export class ReportController {
     @Get('summary')
     summary() {
         return HttpResults.Download(path.join(__dirname, 'reports', 'summary.pdf'), 'summary.pdf', 'application/pdf');
+    }
+}
+```
+
+## Sending Streams
+
+`HttpResults.Stream(stream, filename?, contentType?)` sends a readable stream, such as a file read with `createReadStream()`, the body of a request to another service or a database cursor. The source is destroyed when the client closes the connection before the end, so its file descriptor or its connection is released.
+
+When the source fails, the response depends on how much of it has been sent, with both adapters:
+
+- **Before the first chunk**: the request is answered with `500` in the JSON format of the framework: `{ "error": "Stream failed", "status": 500 }`.
+- **During the transfer**: the status and part of the body are already sent, so the connection is destroyed and the client sees an incomplete transfer instead of a response that looks complete.
+
+In both cases the process keeps running, and the error is logged by the HTTP logger with the route, such as `Error while sending the response of ReportController.export: Error -> upstream failed`, unless `logErrors` is disabled.
+
+```ts
+import { createReadStream } from 'node:fs';
+import { Controller, Get, HttpResults } from '@axisparkjs/http';
+
+@Controller('reports')
+export class ReportController {
+    @Get('export')
+    export() {
+        return HttpResults.Stream(createReadStream('/var/data/export.csv'), 'export.csv', 'text/csv');
     }
 }
 ```

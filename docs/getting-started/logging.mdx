@@ -153,7 +153,7 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`HttpTransport`</td>
-            <td>Sends log messages to a specified HTTP endpoint as JSON, with the `name`, `message`, `stack` and `cause` of the logged error.</td>
+            <td>Sends log messages to a specified HTTP endpoint as JSON, with the `name`, `message`, `stack` and `cause` of the logged error. The request is aborted after the `timeout` option, 5 seconds by default.</td>
         </tr>
         <tr>
             <td>`MemoryTransport`</td>
@@ -173,10 +173,28 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`WebhookTransport`</td>
-            <td>Sends log messages to a webhook endpoint.</td>
+            <td>Sends log messages to a webhook endpoint. The request is aborted after the `timeout` option, 5 seconds by default.</td>
         </tr>
     </tbody>
 </table>
+
+### When a transporter fails
+
+A transporter that fails, for example because its endpoint is down or the disk is full, never breaks the code that logs: `logger.info()`, `logger.error()` and the other level methods do not reject because of a transporter, and the other transporters still receive the entry.
+
+The failure is written to `process.stderr` at most once per transporter every minute, so it is visible without flooding the output. To handle it in another way, pass the `onError` option to the transporter:
+
+```ts
+new HttpTransport({
+    url: 'https://logs.example.com/ingest',
+    formatter: new JsonFormatter(),
+    minLevel: LogLevel.Info,
+    timeout: 2000,
+    onError: (error, entry) => metrics.increment('log_delivery_failures')
+});
+```
+
+Some logs must stop the operation when they can not be written, such as audit logs. Set `failOnError: true` on their transporter: a failure of that transporter rejects the call to the logger, after the entry has been sent to the other transporters.
 
 ### Create your own transporter
 

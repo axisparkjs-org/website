@@ -150,7 +150,7 @@ export class AdminService {
 }
 ```
 
-The plugin only manages the producer and consumer it creates for each connection. If you create additional KafkaJS clients yourself, connect and disconnect them in your service. The corresponding injection tokens are `KAFKA_CONNECTION_<name>`, `KAFKA_PRODUCER_<name>`, and `KAFKA_CONSUMER_<name>`. The decorators are the recommended way to resolve them.
+The plugin only manages the producer and consumer it creates for each connection. If you create additional KafkaJS clients yourself, connect and disconnect them in your service. The corresponding injection tokens are `KAFKA_CONNECTION_<name>`, `KAFKA_PRODUCER_<name>`, and `KAFKA_CONSUMER_<name>`, returned by `kafkaConnectionToken(name)`, `kafkaProducerToken(name)` and `kafkaConsumerToken(name)`, which always return the same token instance for the same name. The decorators are the recommended way to resolve them.
 
 ## Use the connection manager
 

@@ -24,6 +24,8 @@ The engine also provides a default timeout for all transports (5000ms) in case y
 
 When an execution times out on a transport that has no timeout handler registered, the engine throws an `ExecutionTimeoutError` (`Execution timed out after <time>ms`). The error filters of the transport handle it like any other error, so a timeout never ends with an empty response.
 
+The timeout covers the execution of the handler, not the transfer of the response. A handler that returns `HttpResults.Stream()` or `HttpResults.File()` ends when it returns the result, so a long download is not stopped by the timeout.
+
 ## Example of Timeouts in Http Transport
 
 ```ts title="app.ts"

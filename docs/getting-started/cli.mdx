@@ -37,6 +37,18 @@ axispark create [name] [options]
 
 When neither `--install` nor `--no-install` is passed, the CLI asks whether to install the dependencies. The command fails if the target directory already exists.
 
+When the CLI asks for the project name, it checks the name while you type it, so you can fix it without running the command again.
+
+Press `Ctrl+C` or `Esc` in any question to cancel the command: it stops with the message `Cancelled.` and the exit code `130`, and nothing is created. Cancelling the question about the dependencies, which is asked once the project exists, keeps the project and skips the installation, so run `npm install` in it before starting it.
+
+### Errors
+
+The errors of a command, such as an invalid project name, an unknown template or a directory that already exists, are printed in one line and the CLI exits with the code `1`. Pass `--verbose` before the command, or set the `DEBUG` environment variable, to print the stack trace of the error as well:
+
+```bash
+axispark --verbose create my-app
+```
+
 The following command creates an HTTP project in the `my-app` directory and installs its dependencies without asking any question:
 
 ```bash

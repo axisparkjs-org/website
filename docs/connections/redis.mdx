@@ -95,7 +95,7 @@ export class SessionCache {
 }
 ```
 
-The decorator resolves the name configured in `connections`. Its underlying dependency injection token is `REDIS_CONNECTION_<name>`, which `redisConnectionToken(name)` returns; you can also use the standard `@Inject(new InjectionToken('REDIS_CONNECTION_CACHE'))` form if needed.
+The decorator resolves the name configured in `connections`. Its underlying dependency injection token is `REDIS_CONNECTION_<name>`, which `redisConnectionToken(name)` returns. It always returns the same token instance for the same name, so you can also use the standard `@Inject(redisConnectionToken('CACHE'))` form if needed. A new `InjectionToken('REDIS_CONNECTION_CACHE')` is a different token and does not resolve the connection.
 
 ### Use the connection manager
 

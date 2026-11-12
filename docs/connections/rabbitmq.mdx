@@ -76,7 +76,7 @@ export class OrderPublisher {
 }
 ```
 
-The decorator resolves the name configured in `connections`. Its underlying dependency injection token is `RABBITMQ_CONNECTION_<name>`; you can also use the standard `@Inject(new InjectionToken('RABBITMQ_CONNECTION_ORDERS'))` form if needed.
+The decorator resolves the name configured in `connections`. Its underlying dependency injection token is `RABBITMQ_CONNECTION_<name>`, which `rabbitMQConnectionToken(name)` returns. It always returns the same token instance for the same name, so you can also use the standard `@Inject(rabbitMQConnectionToken('ORDERS'))` form if needed. A new `InjectionToken('RABBITMQ_CONNECTION_ORDERS')` is a different token and does not resolve the connection.
 
 ### Use the connection manager
 
