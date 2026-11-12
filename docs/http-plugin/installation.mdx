@@ -130,6 +130,11 @@ export interface HttpPluginOptions extends PluginOptions {
      */
     port: number;
     /**
+     * The address on which the HTTP server will listen, such as `127.0.0.1` to accept only local connections.
+     * Defaults to every network interface: `::` when IPv6 is available, and `0.0.0.0` otherwise.
+     */
+    host?: string;
+    /**
      * The base path for the HTTP server.
      */
     basePath: string;
@@ -237,6 +242,20 @@ export interface HttpPluginOptions extends PluginOptions {
     logErrors?: boolean;
 }
 ```
+
+### Listening address
+
+By default, the HTTP server listens on every network interface with both adapters, as Node.js does: on `::` when IPv6 is available, and on `0.0.0.0` otherwise. This is what an application needs inside a container (Docker, Kubernetes), where the traffic and the health checks of the orchestrator do not arrive through the loopback interface.
+
+Set `host` to listen on a single address, for example to accept only the connections from the same machine:
+
+```ts
+app.use(HttpPlugin, HttpPluginOptionsFactory.create({ port: 3000, host: '127.0.0.1' }));
+```
+
+The start message of the plugin shows the address and the port returned by the server, such as `Plugin started. Listening on [::]:3000` or `Plugin started. Listening on 127.0.0.1:3000`.
+
+> Before this option existed, the Fastify adapter listened only on `localhost`. If your application relied on it, set `host: '127.0.0.1'`.
 
 ### Running behind a proxy
 
