@@ -203,7 +203,7 @@ function HomePage(): ReactNode {
                     <Link className="ax-button ax-button--primary" to="/docs/category/getting-started">
                         Get started
                     </Link>
-                    <Link className="ax-button ax-button--glass glass" href="https://github.com/axisparkjs/axispark">
+                    <Link className="ax-button ax-button--glass glass" href="https://github.com/axisparkjs-org/axispark">
                         View on GitHub
                     </Link>
                 </div>

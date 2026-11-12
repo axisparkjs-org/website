@@ -8,7 +8,7 @@ Closes #<!-- issue number -->
 
 ## Related pull requests
 
-<!-- Link the pull request in https://github.com/axisparkjs/axispark whose change this documents, if there is one. Remove this section otherwise. -->
+<!-- Link the pull request in https://github.com/axisparkjs-org/axispark whose change this documents, if there is one. Remove this section otherwise. -->
 
 ## Checklist
 

@@ -3,7 +3,7 @@
 Source of [axisparkjs.com](https://axisparkjs.com), built with [Docusaurus](https://docusaurus.io/).
 
 - `docs/`, `blog/`, `src/` and `static/` are written by hand.
-- The API reference (`api/`) is **generated** from the TSDoc comments of [axisparkjs/axispark](https://github.com/axisparkjs/axispark) and is not committed.
+- The API reference (`api/`) is **generated** from the TSDoc comments of [axisparkjs-org/axispark](https://github.com/axisparkjs-org/axispark) and is not committed.
 - The changelog page (`/changelog`, `src/pages/changelog.mdx`) is **generated** from the `CHANGELOG.md` of axispark and is not committed. It is a timeline of releases (`src/components/Changelog`): the features of each release are shown as highlights, titled with the bold lead of the entry (`- **MCP server.** New ...`), followed by the full list of changes.
 - `versioned_docs/` and `api_versioned_docs/` hold the documentation of every released version (see [Versions](#versions)).
 
@@ -16,7 +16,7 @@ You need [Node.js](https://nodejs.org/) version 24 or higher.
 npm ci
 
 # 2. API reference: clone and build the code repository inside this folder (ignored by git)
-git clone https://github.com/axisparkjs/axispark.git axispark
+git clone https://github.com/axisparkjs-org/axispark.git axispark
 npm --prefix axispark ci && npm --prefix axispark run build
 npm run api:ci
 npm run api:generate
@@ -45,7 +45,7 @@ The site keeps the documentation of every minor version of AxiSpark.js. The vers
 
 ## Pipelines
 
-- **CI** (`ci.yml`): runs on pull requests to `feature/**`, `release/**` and `main`, and on pushes to `main`. It checks out `axisparkjs/axispark` (`main`), builds it, generates the API reference with TypeDoc and builds the site, so broken links or TSDoc problems fail the check. On pushes to `main`, when the check passes, it runs the CD.
+- **CI** (`ci.yml`): runs on pull requests to `feature/**`, `release/**` and `main`, and on pushes to `main`. It checks out `axisparkjs-org/axispark` (`main`), builds it, generates the API reference with TypeDoc and builds the site, so broken links or TSDoc problems fail the check. On pushes to `main`, when the check passes, it runs the CD.
 - **CD** (`cd.yml`): builds the site and publishes it. What it publishes depends on who starts it:
   - The axispark repository, with the `axispark-release` event after a release: saves the documentation version of the release (see [Versions](#versions)), commits it to `main` and deploys the site to GitHub Pages (custom domain in `static/CNAME`). `client_payload.ref` is the release commit whose API reference and changelog are generated, and `client_payload.version` the released version. Merging a change to `main` does not deploy it to Pages: it goes live with the next release of axispark.
   - The CI, after every verified push to `main`: the `staging` job packages the site (API reference from axispark `main`) in the public Docker image `ghcr.io/axisparkjs-org/website` (nginx, see `docker/`) and publishes it to GitHub Container Registry with the tags `latest` and `sha-<commit>`. GitHub creates packages as private: the first time, make it public in the package settings (*Change visibility* > *Public*); the job shows a warning while it is not.
