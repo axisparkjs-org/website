@@ -81,7 +81,7 @@ import { DataSource } from 'typeorm';
 constructor(@InjectDataSource('PRIMARY') private readonly dataSource: DataSource) {}
 ```
 
-Data source names are looked up case-insensitively for injection tokens (`PRIMARY` and `primary` map to the same token). Repository injection uses the repository class name.
+Data source names are looked up case-insensitively for injection tokens (`PRIMARY` and `primary` map to the same token, which `dataSourceToken(name)` returns). Repository injection uses the repository class itself, through `dataRepositoryToken(repository)`, so two repository classes with the same name in different folders get different tokens.
 
 ## BaseRepository methods
 
