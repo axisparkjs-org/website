@@ -155,3 +155,27 @@ export class UserController {
         return new HandledResult();
     }
 }
+
+## Sending Streams
+
+`HttpResults.Stream(stream, filename?, contentType?)` sends a readable stream, such as a file read with `createReadStream()`, the body of a request to another service or a database cursor. The source is destroyed when the client closes the connection before the end, so its file descriptor or its connection is released.
+
+When the source fails, the response depends on how much of it has been sent, with both adapters:
+
+- **Before the first chunk**: the request is answered with `500` in the JSON format of the framework: `{ "error": "Stream failed", "status": 500 }`.
+- **During the transfer**: the status and part of the body are already sent, so the connection is destroyed and the client sees an incomplete transfer instead of a response that looks complete.
+
+In both cases the process keeps running, and the error is logged by the HTTP logger with the route, such as `Error while sending the response of ReportController.export: Error -> upstream failed`, unless `logErrors` is disabled.
+
+```ts
+import { createReadStream } from 'node:fs';
+import { Controller, Get, HttpResults } from '@axisparkjs/http';
+
+@Controller('reports')
+export class ReportController {
+    @Get('export')
+    export() {
+        return HttpResults.Stream(createReadStream('/var/data/export.csv'), 'export.csv', 'text/csv');
+    }
+}
+```
