@@ -21,6 +21,22 @@ The AxiSpark.js framework is built using TypeScript, a statically typed superset
 
 The AxiSpark CLI will automatically set up your project with TypeScript, so you don't need to worry about configuring it manually.
 
+If you add AxiSpark.js to an existing project, its `tsconfig.json` needs these compiler options:
+
+```json title="tsconfig.json"
+{
+    "compilerOptions": {
+        "target": "es2023",
+        "useDefineForClassFields": false,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "module": "commonjs"
+    }
+}
+```
+
+> The packages are compiled to ES2023, which Node.js 24 and higher run natively. `useDefineForClassFields` must be `false` with a target of ES2022 or higher: its default is `true` from that target on, and then a field that a subclass redeclares without an initializer (for example the `options` of a custom plugin) is reset to `undefined` after the base constructor runs.
+
 ### Starting a New Project
 
 ```bash
