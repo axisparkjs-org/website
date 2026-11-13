@@ -163,4 +163,6 @@ export class MyService {
 
 > If you do not specify a scope, the default scope is `Singleton`. This means that the same instance of the dependency will be shared across the entire application.
 
+> A singleton is created only once, even when it is resolved by several resolutions at the same time, for example by two requests that arrive while its asynchronous factory is still running: every resolution waits for the same instance. The same rule applies to a scoped instance inside one scoped container. If the factory fails, the error is returned to the resolutions that were waiting for it, and the next resolution calls the factory again.
+
 > Be careful, Singleton scope components can not be injected with Scoped or Transient scope components. If you need to inject a Scoped or Transient component into a Singleton component, you can use the `Injector` class to retrieve the instance of the dependency at runtime. To handle scoped instances, you have to pass the `ScopedContainer` to the `Injector` class when retrieving the instance of the dependency. The `ScopedContainer` is retrieved from the `ExecutionContext` object, which is available in all the entrypoints of the application using `@Context`. For more information about the `ExecutionContext` object, please refer to the [Engine System](../category/engine-system) section of the documentation.

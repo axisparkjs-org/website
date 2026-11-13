@@ -14,7 +14,7 @@ const config: Config = {
     },
 
     // GitHub pages deployment config.
-    organizationName: 'axisparkjs',
+    organizationName: 'axisparkjs-org',
     projectName: 'website',
 
     onBrokenLinks: 'throw',
@@ -87,7 +87,7 @@ const config: Config = {
                 // (src/theme/NavbarItem/VersionDropdownNavbarItem.tsx).
                 { type: 'custom-versionDropdown', position: 'right' },
                 {
-                    href: 'https://github.com/axisparkjs/axispark',
+                    href: 'https://github.com/axisparkjs-org/axispark',
                     label: 'GitHub',
                     position: 'right'
                 }
