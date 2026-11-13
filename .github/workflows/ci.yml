@@ -31,6 +31,16 @@ jobs:
           ref: main
           path: axispark
 
+      # The benchmarks pages are generated from the results of the benchmarks repository. Without it, the pages say that
+      # there are no results: the documentation is deployed anyway.
+      - name: Checkout benchmarks
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          repository: axisparkjs-org/benchmarks
+          ref: main
+          path: benchmarks
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -54,6 +64,9 @@ jobs:
 
       - name: Generate API documentation
         run: npm run api:generate
+
+      - name: Generate benchmarks
+        run: npm run benchmarks:generate
 
       - name: Generate changelog
         run: npm run changelog:generate

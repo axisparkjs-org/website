@@ -15,8 +15,11 @@ on:
   # reference are saved as the documentation version of the release and the site is deployed to GitHub
   # Pages.
   # client_payload: `ref` (release commit of axispark) and `version` (released version, e.g. 1.5.0).
+  # Sent by the benchmarks repository when the results of a release are saved: the site is regenerated and deployed to
+  # GitHub Pages from the latest release, without a new documentation version.
+  # client_payload: `version` (measured version).
   repository_dispatch:
-    types: [axispark-release]
+    types: [axispark-release, benchmarks-updated]
   # Called by the CI workflow after every verified push to `main`: the API reference is generated from
   # axispark `main` and the site is published as the `latest` staging image.
   workflow_call:
@@ -39,13 +42,35 @@ jobs:
       - name: Checkout documentation
         uses: actions/checkout@v7
 
-      # `ref` is the release commit of axispark sent in the event, or `main` when called by the CI.
+      # `ref` is the release commit of axispark sent in the event, the latest release for `benchmarks-updated`
+      # (the deployed site keeps documenting it), or `main` when called by the CI.
+      - name: Resolve the axispark commit
+        id: axispark
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ github.event.client_payload.ref }}
+        run: |
+          if [ -z "$REF" ] && [ "${{ github.event.action }}" = "benchmarks-updated" ]; then
+            REF=$(gh api repos/axisparkjs-org/axispark/releases/latest --jq .tag_name)
+          fi
+          echo "ref=${REF:-main}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout axispark
         uses: actions/checkout@v7
         with:
           repository: axisparkjs-org/axispark
-          ref: ${{ github.event.client_payload.ref || 'main' }}
+          ref: ${{ steps.axispark.outputs.ref }}
           path: axispark
+
+      # The benchmarks pages are generated from the results of the benchmarks repository. Without it, the pages say that
+      # there are no results: the documentation is deployed anyway.
+      - name: Checkout benchmarks
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          repository: axisparkjs-org/benchmarks
+          ref: main
+          path: benchmarks
 
       - uses: actions/setup-node@v7
         with:
@@ -76,7 +101,7 @@ jobs:
       # documentation version <major>.<minor> of the release (see scripts/snapshot-version.mjs) and are
       # committed to `main`, so the next builds keep them.
       - name: Save documentation version
-        if: github.event_name == 'repository_dispatch' || github.event.inputs.group == 'pages'
+        if: github.event.action == 'axispark-release'
         env:
           VERSION: ${{ github.event.client_payload.version }}
         run: |
@@ -97,6 +122,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "docs: save the documentation of AxiSpark.js ${VERSION}"
           git push
+
+      - name: Generate benchmarks
+        run: npm run benchmarks:generate
 
       - name: Generate changelog
         run: npm run changelog:generate

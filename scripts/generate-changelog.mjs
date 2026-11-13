@@ -7,7 +7,8 @@
 // highlighted with that title; otherwise the title is the first words of the entry.
 //
 // Every release links to the guides and the API reference of its documentation version (<major>.<minor>,
-// see versions.json). The changesets that are not released yet are listed first as "Unreleased", linked to
+// see versions.json), and to its benchmarks report when scripts/generate-benchmarks.mjs has generated it (run it
+// first). The changesets that are not released yet are listed first as "Unreleased", linked to
 // the "Next" documentation, so the staging site shows what is coming in the next version.
 //
 // Usage: node scripts/generate-changelog.mjs [path to the axispark repository]
@@ -26,6 +27,11 @@ if (!existsSync(changelogPath)) {
 }
 
 const versions = JSON.parse(readFileSync(join(root, 'versions.json'), 'utf8'));
+const benchmarksDir = join(root, 'src/pages/benchmarks');
+
+function benchmarksLink(version) {
+    return version && existsSync(join(benchmarksDir, `${version}.mdx`)) ? `/benchmarks/${version}` : undefined;
+}
 const [latest] = versions;
 
 function documentationLinks(docsVersion) {
@@ -136,7 +142,7 @@ function releases(changelog) {
             version,
             date: date && `Released on ${formatDate(date)}`,
             kind: patch !== '0' ? 'patch' : minor === '0' ? 'major' : 'minor',
-            links: documentationLinks(`${major}.${minor}`),
+            links: { ...documentationLinks(`${major}.${minor}`), benchmarks: benchmarksLink(version) },
             latest: index === 0,
             body: rest.join('\n')
         });

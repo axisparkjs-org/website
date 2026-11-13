@@ -14,7 +14,8 @@
         "typecheck": "tsc",
         "api:ci": "npm --prefix ./api-generator ci",
         "api:generate": "npm --prefix ./api-generator run generate",
-        "changelog:generate": "node scripts/generate-changelog.mjs"
+        "changelog:generate": "node scripts/generate-changelog.mjs",
+        "benchmarks:generate": "node scripts/generate-benchmarks.mjs"
     },
     "dependencies": {
         "@docusaurus/core": "3.10.2",

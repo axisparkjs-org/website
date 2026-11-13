@@ -4,8 +4,15 @@
 # Generated changelog page (see scripts/generate-changelog.mjs)
 /src/pages/changelog.mdx
 
+# Generated benchmarks pages and data (see scripts/generate-benchmarks.mjs)
+/src/pages/benchmarks
+/static/benchmarks
+
 # Checkout of the axispark repository used to generate the API reference
 /axispark
+
+# Checkout of the benchmarks repository used to generate the benchmarks pages
+/benchmarks
 
 # Dependencies
 node_modules

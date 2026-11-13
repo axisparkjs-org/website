@@ -81,6 +81,7 @@ const config: Config = {
                     label: 'API'
                 },
                 { to: '/changelog', label: 'Changelog', position: 'left' },
+                { to: '/benchmarks', label: 'Benchmarks', position: 'left' },
                 { to: '/blog', label: 'Blog', position: 'left' },
                 // Selects the version of the guides and of the API reference at the same time
                 // (src/theme/NavbarItem/VersionDropdownNavbarItem.tsx).
