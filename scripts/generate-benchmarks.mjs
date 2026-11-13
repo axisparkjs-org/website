@@ -207,7 +207,7 @@ Every release of AxiSpark.js is measured with the packages published on npm, lik
 suites cover every package and five scenarios of complete applications. Each one runs three times in a new process and
 the report keeps the median. Where there is a reference without the framework (Express, Fastify, Socket.IO, TypeORM,
 the clients of the brokers…), the **ratio** is the overhead of AxiSpark.js: it varies much less between machines than
-the absolute time. The suites and the raw results are in the [benchmarks repository](https://github.com/axisparkjs-org/benchmarks).
+the absolute time. The suites and the raw results are in the [benchmarks repository](https://github.com/axisparkjs-org/benchmark).
 
 </div>
 

@@ -68,7 +68,7 @@ jobs:
         uses: actions/checkout@v7
         continue-on-error: true
         with:
-          repository: axisparkjs-org/benchmarks
+          repository: axisparkjs-org/benchmark
           ref: main
           path: benchmarks
 
