@@ -96,6 +96,8 @@ The handlers of a transport without a resolver are never cached, even with `@Cac
 <transport>:<Class>.<method>:<generation>:<key>
 ```
 
+`<Class>` is the name of the class of the handler. When several classes share a name, such as two `ProductController` in different folders, the first one registered keeps the name and the others get `<name>#<n>` in registration order (the import order of the files), so they never share entries, and every instance of the application builds the same keys with a shared store such as Redis.
+
 The **generation** of a handler is a counter kept in the store with the key `gen:<Class>.<method>`. Inject `CacheService` in the services that change the data to evict the cached results:
 
 ```ts title="product.service.ts"
