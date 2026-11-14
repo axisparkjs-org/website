@@ -21,6 +21,14 @@ AxiSpark.js comes with a set of built-in pipe-steps that you can use out of the 
     </thead>
     <tbody>
         <tr>
+            <td><code>Default(value, options?: { emptyString?: boolean })</code></td>
+            <td>Returns <code>value</code> when the parameter is <code>undefined</code> (also an empty string with <code>emptyString: true</code>), so the next pipe-steps receive it. Objects and arrays are copied for each execution. Never fails. See <a href="#optional-parameters">Optional Parameters</a>.</td>
+        </tr>
+        <tr>
+            <td><code>Optional(options?: { emptyString?: boolean })</code></td>
+            <td>When the parameter is <code>undefined</code> (also an empty string with <code>emptyString: true</code>), skips the rest of the pipe-steps of the parameter and the handler receives <code>undefined</code>. Never fails.</td>
+        </tr>
+        <tr>
             <td><code>LowerCase()</code></td>
             <td>Converts the input string to lowercase.</td>
         </tr>
@@ -53,12 +61,28 @@ AxiSpark.js comes with a set of built-in pipe-steps that you can use out of the 
             <td>Transforms the input string to a boolean value.</td>
         </tr>
         <tr>
+            <td><code>ParseArray(options?: ParseArrayPipeStepOptions)</code></td>
+            <td>Returns an array from a comma-separated string, a single value or an array. Options: <code>separator</code>, <code>items</code> (a pipe-step applied to each item, such as <code>ParseInt()</code>), <code>minItems</code>, <code>maxItems</code> and <code>unique</code>. See <a href="#lists">Lists</a>.</td>
+        </tr>
+        <tr>
+            <td><code>ParseDate(options?: { dateOnly?: boolean })</code></td>
+            <td>Transforms an ISO 8601 string to a <code>Date</code>: a date (<code>2026-03-01</code>, read as midnight UTC) or a date-time with <code>Z</code> or an offset (<code>2026-03-01T10:30:00+02:00</code>). Date-times without an offset and invalid dates such as <code>2026-02-30</code> are rejected. With <code>dateOnly: true</code>, only <code>YYYY-MM-DD</code> is accepted.</td>
+        </tr>
+        <tr>
+            <td><code>ParseEnum(enumOrValues, options?: { ignoreCase?: boolean })</code></td>
+            <td>Accepts a value of a TypeScript enum (string or numeric) or of an array of values, and returns the value of the enum (<code>'1'</code> is returned as <code>1</code> for a numeric enum). The error lists the allowed values.</td>
+        </tr>
+        <tr>
             <td><code>ParseFloat()</code></td>
             <td>Transforms the input string to a float value.</td>
         </tr>
         <tr>
             <td><code>ParseInt()</code></td>
             <td>Transforms the input string to an integer value.</td>
+        </tr>
+        <tr>
+            <td><code>ParseUuid(version?: number)</code></td>
+            <td>Checks that the input string is a UUID (RFC 9562, versions 1 to 8, and the nil and max UUIDs), optionally of one version such as <code>4</code> or <code>7</code>, and returns it in lower case.</td>
         </tr>
         <tr>
             <td><code>Range(min: number, max: number)</code></td>
@@ -78,6 +102,51 @@ AxiSpark.js comes with a set of built-in pipe-steps that you can use out of the 
         </tr>
     </tbody>
 </table>
+
+## Optional Parameters
+
+The parsing pipe-steps fail when the parameter is missing: `@Query('page') @Pipe(ParseInt()) page: number` answers `400` for a request without `page`. Put `Default()` or `Optional()` before them to accept missing parameters:
+
+```ts
+import { Default, Optional, ParseDate, ParseEnum, ParseInt, ParseUuid, Pipe } from '@axisparkjs/engine';
+import { Controller, Get, Path, Query } from '@axisparkjs/http';
+
+enum OrderStatus {
+    Open = 'open',
+    Shipped = 'shipped'
+}
+
+@Controller('orders')
+export class OrderController {
+    @Get()
+    list(
+        @Query('page') @Pipe(Default(1), ParseInt()) page: number,
+        @Query('status') @Pipe(Default(OrderStatus.Open), ParseEnum(OrderStatus)) status: OrderStatus,
+        @Query('from') @Pipe(Optional(), ParseDate()) from: Date | undefined
+    ) {}
+
+    @Get(':id')
+    find(@Path('id') @Pipe(ParseUuid()) id: string) {}
+}
+```
+
+- `Default(1)` gives the value `1` to a missing `page`, and `ParseInt()` receives it.
+- `Optional()` stops the pipe of a missing `from`: `ParseDate()` does not run and the handler receives `undefined`.
+- Query parameters with an empty value (`?page=`) arrive as `''`. Use `{ emptyString: true }` to treat them as missing.
+
+## Lists
+
+`?tags=a,b` arrives as the string `"a,b"`, and `?tags=a` as a string, although the parameter is typed as `string[]`. Only `?tags=a&tags=b` is an array. `ParseArray()` returns an array in every case, and the `items` option converts each item with another pipe-step:
+
+```ts
+@Get()
+list(
+    @Query('tags') @Pipe(Default([]), ParseArray({ maxItems: 5, unique: true })) tags: string[],
+    @Query('ids') @Pipe(Default([]), ParseArray({ items: ParseInt() })) ids: number[]
+) {}
+```
+
+`GET /orders?tags=a,b&tags=c&ids=1,2` gives `tags = ['a', 'b', 'c']` and `ids = [1, 2]`. The items are trimmed and the empty ones removed. `minItems`, `maxItems` and `unique` (compared after the `items` pipe-step) throw a `PipeStepValidationError`.
 
 ## Schema Validation
 
@@ -177,6 +246,19 @@ export const Custom = (value: number) => {
         PipeStepConfig: { value } as CustomPipeStepConfig
     };
 };
+```
+
+A pipe-step can stop the pipe of its parameter by returning `PipeStepSkip`, as `Optional()` does: the rest of the pipe-steps are skipped and the handler receives `undefined`. The `execute` method also receives the `ExecutionContext` as an optional third argument.
+
+```ts
+import { ParameterDefinition, PipeStep, PipeStepSkip } from '@axisparkjs/engine';
+
+@Injectable()
+export class SkipNullPipeStep implements PipeStep {
+    execute(parameter: ParameterDefinition): any {
+        return parameter.value === null ? PipeStepSkip : parameter.value;
+    }
+}
 ```
 
 ##  Using Pipes in Engine Steps
