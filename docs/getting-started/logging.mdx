@@ -231,6 +231,16 @@ AxiSparkFactory.create({
 
 > You can add multiple transporters to the `logTransports` array, allowing you to send log messages to multiple destinations simultaneously. Each transporter can have its own configuration, including the minimum logging level and formatter.
 
+The logger checks the lowest `minLevel` of its transporters before building an entry: a call below it, such as `debug()` with every transporter at `Info`, returns at once, without building the entry or calling the transporters. Use `logger.isLevelEnabled(LogLevel.Debug)` to skip the work of preparing a message that nobody would write:
+
+```ts
+if (this.logger.isLevelEnabled(LogLevel.Debug)) {
+    await this.logger.debug(`Cart contents: ${JSON.stringify(cart)}`);
+}
+```
+
+A custom transporter gets its minimum level from the `minLevel` of its options (the `minLevel` getter of `LogTransport`).
+
 ### Default transport
 
 When `logTransports` is not set, the application uses a single `ConsoleTransport` with the `LogLevel.Trace` minimum level and the `SimpleFormatter`, which is equivalent to:
