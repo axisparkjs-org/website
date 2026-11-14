@@ -104,6 +104,8 @@ app.use(ExamplePlugin);
 
 To create an AxiSpark.js application, we use the `AxiSparkFactory.create()` method, which takes an options object as a parameter. In this example, we set the application name, base path, and log transports. We also register an example plugin using the `app.use()` method.
 
+The values that change between environments, such as the port or the database URL, are read from the environment variables and the `.env` files with the `settings` option. See [Settings](../getting-started/settings).
+
 > The `app.init()` method initializes the application, setting up any necessary resources and configurations. The `app.run()` method starts the application, allowing it to handle requests and perform its intended functionality. Finally, the `app.destroy()` method cleans up any resources and performs necessary teardown operations when the application is shutting down.
 
 ### Files loaded by the scanner
