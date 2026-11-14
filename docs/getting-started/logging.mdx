@@ -153,7 +153,7 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`HttpTransport`</td>
-            <td>Sends log messages to a specified HTTP endpoint as JSON, with the `name`, `message`, `stack` and `cause` of the logged error. The request is aborted after the `timeout` option, 5 seconds by default.</td>
+            <td>Sends log messages to a specified HTTP endpoint as JSON, with the `name`, `message`, `stack` and `cause` of the logged error. The request is aborted after the `timeout` option, 5 seconds by default. With the `batch` option, the messages are sent together as a JSON array.</td>
         </tr>
         <tr>
             <td>`MemoryTransport`</td>
@@ -177,6 +177,24 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
     </tbody>
 </table>
+
+### Sending the HTTP logs in batches
+
+By default, `HttpTransport` makes one request per message. Set `batch` to send them together, as a JSON array, when `size` messages are waiting or after `interval` milliseconds:
+
+```ts
+new HttpTransport({
+    url: 'https://logs.example.com/ingest',
+    minLevel: LogLevel.Info,
+    formatter: new JsonFormatter(),
+    batch: { size: 100, interval: 1000 } // `batch: true` uses these defaults.
+});
+```
+
+- The call to the logger does not wait for the request, so logging does not add the latency of the endpoint to your code.
+- `app.destroy()` calls `logger.flush()`, which sends the waiting messages and waits for the requests. Call it before exiting the process in other ways.
+- The endpoint receives an array of entries instead of one entry, so enable the option only when it accepts arrays.
+- A failed batch is reported to `onError` once for each of its messages, or on `process.stderr` at most once a minute. `failOnError` does not apply, because nobody is waiting for the request.
 
 ### When a transporter fails
 
