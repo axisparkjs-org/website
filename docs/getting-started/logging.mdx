@@ -145,11 +145,11 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`DailyFileTransport`</td>
-            <td>Sends log messages to a specified file, creating a new file each day.</td>
+            <td>Sends log messages to a specified file, creating a new file each day. The file of the day is kept open, and the previous one is closed when the day changes.</td>
         </tr>
         <tr>
             <td>`FileTransport`</td>
-            <td>Sends log messages to a specified file.</td>
+            <td>Sends log messages to a specified file, which is kept open with a stream in append mode instead of being opened for every message. The messages are written in order, and the file is closed when the application is destroyed.</td>
         </tr>
         <tr>
             <td>`HttpTransport`</td>
@@ -165,7 +165,7 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`RotatingFileTransport`</td>
-            <td>Sends log messages to a specified file, rotating the file when it reaches a certain size or age.</td>
+            <td>Sends log messages to a specified file, rotating the file when it reaches `maxSize` bytes and keeping `maxFiles` rotated files. The size is counted in memory, and the file is closed before it is rotated.</td>
         </tr>
         <tr>
             <td>`StreamTransport`</td>
@@ -177,6 +177,10 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
     </tbody>
 </table>
+
+### Closing the files
+
+The file transporters keep their file open while the application runs. `app.destroy()` calls `logger.flush()`, which waits for the pending messages and closes the files; the next message opens them again. When a file can not be written, for example because its folder does not exist, the call fails as described below and the next message tries to open the file again.
 
 ### When a transporter fails
 
