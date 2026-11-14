@@ -94,6 +94,11 @@ Data source names are looked up case-insensitively for injection tokens (`PRIMAR
 | `count(options?)` | Counts entities matching the options. |
 | `exists(options?)` | Returns whether at least one entity matches the options. |
 | `remove(entity)` / `remove(entities)` | Removes persisted entities and returns the removed instance or instances. |
+| `findById(id)` | Returns the entity with the primary key, or `null` when it does not exist. |
+| `findByIds(ids)` | Returns the entities with any of the primary keys. Missing keys are ignored, and the order is not guaranteed. |
+| `existsById(id)` | Returns whether an entity with the primary key exists. |
+| `deleteById(id)` | Deletes the entity with the primary key and returns the number of deleted entities (`0` or `1`). |
+| `findPage(options, pageRequest)` | Returns a `Page` of the entities matching the options, with the totals. |
 
 The `options` argument follows TypeORM's [find options](https://typeorm.io/docs/working-with-entity-manager/find-options/). Use the TypeORM documentation for database-specific behavior and options.
 
@@ -101,6 +106,28 @@ The `options` argument follows TypeORM's [find options](https://typeorm.io/docs/
 const activeUsers = await this.users.find({ where: { status: 'active' }, order: { email: 'ASC' } });
 const total = await this.users.count({ where: { status: 'active' } });
 const hasAdmin = await this.users.exists({ where: { status: 'admin' } });
+```
+
+### Access by primary key
+
+`findById`, `findByIds`, `existsById` and `deleteById` use the primary columns of the entity metadata, so they work with any column name:
+
+```ts
+const user = await this.users.findById(id); // null when it does not exist
+const removed = await this.users.deleteById(id); // 1, or 0 when it did not exist
+```
+
+- With a composite primary key, give an object with every primary column: `findById({ tenantId, userId })`.
+- In MongoDB, a hexadecimal string of 24 characters is converted to an `ObjectId` when the entity has an `@ObjectIdColumn()`, so the ids received in a URL can be used directly.
+- `deleteById` does not run the removal listeners and subscribers of TypeORM; use `remove()` when you need them.
+
+### Paging other queries
+
+`findPage(options, pageRequest)` runs TypeORM find options and returns a `Page` with the totals, as the [paged derived queries](./derived-queries.mdx#pagination) do. The `skip` and `take` of the options are replaced by the page request:
+
+```ts
+const page = await this.users.findPage({ where: { status: 'active' }, order: { email: 'ASC' } }, { page: 0, size: 20 });
+// page.content, page.totalElements, page.totalPages
 ```
 
 Every `BaseRepository` method joins the active transaction of the repository's data source. In your own repository methods, use the protected `entityRepository` and `entityManager` members so that they join transactions too. See [Transactions](./transactions.mdx).
