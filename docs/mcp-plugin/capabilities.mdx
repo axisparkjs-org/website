@@ -128,6 +128,7 @@ Prompt arguments are always strings.
 | `@McpParam(name?)` | A variable of the URI template of a resource, or every variable without a name. |
 | `@McpSession()` | The `McpSession`: the session id, the transport (`'stdio'` or `'http'`), the authentication information and the HTTP headers of the request. |
 | `@McpContext()` | The complete `McpContext`, with the `request`, the `session`, the `client` information and the `definition` of the capability. |
+| `@Signal()` | The `AbortSignal` of the execution, aborted when the request times out or the client cancels it. See [Timeouts](../engine-system/timeouts#stopping-the-work-of-a-handler). |
 
 The engine parameters, such as `@Context()`, also work, and pipes, guards, interceptors, filters and `@Timeout()` apply to MCP handlers as they do to HTTP routes. Steps with `transport: ExecutionTransport.Mcp` only run for MCP requests.
 

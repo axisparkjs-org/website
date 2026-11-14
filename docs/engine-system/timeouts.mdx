@@ -26,6 +26,70 @@ When an execution times out on a transport that has no timeout handler registere
 
 The timeout covers the execution of the handler, not the transfer of the response. A handler that returns `HttpResults.Stream()` or `HttpResults.File()` ends when it returns the result, so a long download is not stopped by the timeout.
 
+## Stopping the work of a handler
+
+A timeout answers the client, but the handler keeps running until it ends unless it is told to stop. Every execution has an `AbortSignal` for that. Inject it with `@Signal()` and pass it to `fetch`, `node:fs`, `node:timers/promises`, `node:child_process`, database drivers or your own loops:
+
+```ts title="report-controller.ts"
+import { Signal, Timeout } from '@axisparkjs/engine';
+import { Controller, Get } from '@axisparkjs/http';
+
+@Controller('reports')
+export class ReportController {
+    @Get()
+    @Timeout(5000)
+    async report(@Signal() signal: AbortSignal) {
+        const response = await fetch(this.reportsUrl, { signal });
+        return response.json();
+    }
+
+    @Get('export')
+    async export(@Signal() signal: AbortSignal) {
+        for (const chunk of this.chunks()) {
+            signal.throwIfAborted();
+            await this.process(chunk);
+        }
+    }
+}
+```
+
+The signal is aborted, with the reason in `signal.reason`, when:
+
+<table>
+    <thead>
+        <tr>
+            <th>Source</th>
+            <th>Reason</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>The timeout of the execution ends (<code>@Timeout()</code> or the default timeout of the transport).</td>
+            <td><code>ExecutionTimeoutError</code></td>
+        </tr>
+        <tr>
+            <td>HTTP: the connection is closed before the response is sent.</td>
+            <td><code>ClientDisconnectedError</code></td>
+        </tr>
+        <tr>
+            <td>WebSocket: the connection is closed while the event is being handled.</td>
+            <td><code>ClientDisconnectedError</code></td>
+        </tr>
+        <tr>
+            <td>MCP: the client cancels the request or the transport is closed.</td>
+            <td>The reason of the MCP signal.</td>
+        </tr>
+    </tbody>
+</table>
+
+- The engine aborts the signal before it runs the timeout handler of the transport, so the handler stops while the `408` (or the timeout acknowledgment of WebSocket) is being sent. The response of a timed-out execution does not change, and a result returned after the timeout is discarded.
+- When the client stops waiting and the handler fails because of the abort (an `AbortError`, or the reason of the signal), the error filters do not run: the error is not a failure of the handler, and nobody will read the response.
+- Handlers that do not use the signal behave as before. Passing the signal on is an explicit choice: a handler that must finish its work even when the client leaves, such as a payment, should not pass it.
+- The listeners added by the engine are removed when the execution ends, so keep-alive connections do not accumulate them.
+- Not every database driver accepts an `AbortSignal`. When a driver cannot cancel a query, check `signal.aborted` between the steps of the handler.
+
+Middlewares, guards, interceptors and filters can read the signal from the context with `@Context()` (`context.signal`).
+
 ## Example of Timeouts in Http Transport
 
 ```ts title="app.ts"

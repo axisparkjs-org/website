@@ -23,6 +23,10 @@ By default, the engine system provides a set of built-in parameters that can be 
             <td>Injects the current execution context into the step, allowing you to access request-specific data and services.</td>
         </tr>
         <tr>
+            <td><code>@Signal()</code></td>
+            <td>Injects the <code>AbortSignal</code> of the execution, aborted when the execution times out or its client stops waiting. See <a href="./timeouts#stopping-the-work-of-a-handler">Stopping the work of a handler</a>.</td>
+        </tr>
+        <tr>
             <td><code>@Error()</code></td>
             <td>Injects the error object into the step, allowing you to access and handle errors that occurred during execution.</td>
         </tr>

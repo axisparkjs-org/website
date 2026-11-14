@@ -16,9 +16,13 @@ export interface ExecutionContext extends ExecutionHandler {
     error?: Error;
     transport: ExecutionTransport;
     scopedContainer: ScopedContainer;
+    /** Aborted when the execution times out or its client stops waiting. */
+    signal: AbortSignal;
 }
 ```
 
 As you can see, the `ExecutionContext` interface includes a property called `scopedContainer`, responsible of Injecting Scoped Dependencies. This allows you to register and resolve dependencies that are specific to the current execution context, ensuring that they are isolated from other executions. Also contains the property `transport`, which indicates the transport mechanism used for the execution, such as HTTP, WebSocket, or any other supported transport. This allows you to handle different types of requests and responses based on the transport being used.
+
+The `signal` property is an `AbortSignal` created by the engine for each execution. It is aborted when the execution times out or the client stops waiting, so middlewares, guards, interceptors and handlers can stop their work. A transport can give its own signal when it creates the context (for example, aborted when the HTTP connection is closed): the engine replaces it with the signal of the execution, which is also aborted when the signal of the transport is. Handlers receive it with `@Signal()`, see [Timeouts](./timeouts.mdx#stopping-the-work-of-a-handler).
 
 This `ExecutionContext` can be retrieve in any step of the workflow using the parameter `@Context()` decorator. See more about this in the [Parameters](./parameters.mdx) section.
