@@ -48,6 +48,15 @@ export class ExamplePlugin extends Plugin {
 
 > The `onRegister`, `onStart`, and `onStop` methods are lifecycle hooks that allow you to perform actions at different stages of the plugin's lifecycle. You can use these methods to initialize resources, start background tasks, or clean up resources when the plugin is stopped.
 
+## Lifecycle Errors
+
+When a lifecycle method of a plugin throws, the error is logged with the `fatal` level and the plugin moves to the `Error` state (`PluginLifecycle.Error`). The application keeps going:
+
+- A plugin in the `Error` state is skipped in the next lifecycle methods (`onStart` and `onStop`), and the rest of the plugins run theirs.
+- A plugin whose **required** dependency is in the `Error` state is skipped too: its `onRegister` or `onStart` is not called, and it moves to the `Error` state with a `PluginDependencyFailedError`. The plugins with an **optional** dependency on the failed plugin still run.
+
+You can check the state of a plugin with `getState()` and the error with `getStateError()`.
+
 ## Adding a Plugin to Your Application
 
 You can add a plugin to your AxiSpark.js application by using the `app.use()` method. This method takes a plugin class as a parameter and registers it with the application.
