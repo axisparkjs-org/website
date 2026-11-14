@@ -48,6 +48,16 @@ export class ExamplePlugin extends Plugin {
 
 > The `onRegister`, `onStart`, and `onStop` methods are lifecycle hooks that allow you to perform actions at different stages of the plugin's lifecycle. You can use these methods to initialize resources, start background tasks, or clean up resources when the plugin is stopped.
 
+## Lifecycle Order
+
+The plugins are grouped by level of their dependency graph (`static dependencies`): the first level has the plugins without dependencies, and each next level has the plugins whose dependencies are in the previous levels. The plugins of a level run `onRegister` and `onStart` **at the same time**, after the previous level has ended, so independent plugins, such as the connections to Redis, Kafka and RabbitMQ, do not wait for each other at startup. `onStop` runs level by level in reverse order, so a plugin is stopped before the plugins it depends on.
+
+Declare in `dependencies` every plugin that a plugin needs to be registered or started before it. When some plugins depend on each other without declaring it, run the lifecycle methods one by one, in dependency order, with the `pluginLifecycle` option of the application:
+
+```ts title="app.ts"
+AxiSparkFactory.create({ pluginLifecycle: 'sequential' });
+```
+
 ## Adding a Plugin to Your Application
 
 You can add a plugin to your AxiSpark.js application by using the `app.use()` method. This method takes a plugin class as a parameter and registers it with the application.
