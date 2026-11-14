@@ -63,8 +63,23 @@ export class PaymentsApiHealth extends HealthIndicator {
 | `name` | Class name | Component name of the check in the health response. |
 | `timeout` | `5000` | Maximum time in milliseconds for the check. If it is exceeded, the check is reported as `Unhealthy`. |
 | `critical` | `true` | Whether a failure of the check makes the whole application `Unhealthy`. Non-critical checks are reported, but they do not change the application status. |
+| `cacheTtl` | `healthChecks.cacheTtl` of the application | Time in milliseconds that the result of the check is reused by the next health requests. `0` runs the check on every request. |
 
 All checks run in parallel, so a slow check does not delay the others and the health endpoints never wait longer than the highest timeout.
+
+### Caching the results
+
+By default, every request to the health endpoints runs every check, so frequent probes, such as the liveness and readiness probes of Kubernetes, hit the databases and brokers continuously. Concurrent health requests always share the checks that are running, and you can reuse the results for a time with `cacheTtl`, for every check in the application config, or per check:
+
+```ts title="app.ts"
+AxiSparkFactory.create({ healthChecks: { cacheTtl: 5000 } });
+```
+
+```ts
+@HealthCheck({ name: 'payments-api', cacheTtl: 30_000 })
+```
+
+The cached result keeps its `timestamp`, so it shows when the check ran. Failed results are cached too, so a dependency that is down is not checked on every request either. The plugin statuses are never cached.
 
 ## Built-in Checks
 
