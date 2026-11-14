@@ -70,8 +70,9 @@ The plugin provides decorators for injecting values from the current WebSocket e
 | `@WsMessage()` | Full message, including its data and optional acknowledgment callback. |
 | `@WsData()` | Message data (`message.data`). |
 | `@WsAck()` | Optional acknowledgment callback (`message.ack`). |
+| `@Signal()` | The `AbortSignal` of the execution, aborted when the event times out or the connection is closed while it is being handled. See [Timeouts](../engine-system/timeouts#stopping-the-work-of-a-handler). |
 
-Import these decorators from `@axisparkjs/websocket`. A handler can also use dependency injection in its class constructor, like other AxiSpark components.
+Import these decorators from `@axisparkjs/websocket`, and `@Signal()` from `@axisparkjs/engine`. A handler can also use dependency injection in its class constructor, like other AxiSpark components.
 
 ## Acknowledgments and results
 

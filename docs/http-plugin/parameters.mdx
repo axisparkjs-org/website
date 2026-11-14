@@ -19,6 +19,10 @@ Http Plugin provides a set of decorators implemented through the `@axisparkjs/en
             <td>Extracts the full context of the current request / execution</td>
         </tr>
         <tr>
+            <td><code>@Signal()</code></td>
+            <td>The <code>AbortSignal</code> of the execution, aborted when the request times out or the client closes the connection before the response is sent. See <a href="../engine-system/timeouts#stopping-the-work-of-a-handler">Timeouts</a>.</td>
+        </tr>
+        <tr>
             <td><code>@Request()</code></td>
             <td>Extracts the HTTP request object from the context</td>
         </tr>
