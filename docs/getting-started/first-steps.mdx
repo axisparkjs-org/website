@@ -134,6 +134,8 @@ export const app = AxiSparkFactory.create({
 
 Exclude the files that must not be imported, such as scripts, build or tool folders under `basePath`, or other application files that create applications at their top level (`app-express.ts`, `app-fastify.ts`…).
 
+When `basePath` has an `axispark.manifest.json` file, written by the [`axispark manifest`](./cli.mdx#manifest) command in the build, the scanner imports the files of the manifest instead of searching the file system. Set `scanner.manifest` to read another file, or to `false` to always search the file system. Without the file, the scanner searches the file system as usual.
+
 > The scanner logs the number of loaded files at `debug` level and each file at `trace` level. Set the `minLevel` of a transport to `LogLevel.Trace` to see which files are imported.
 
 ## Development
