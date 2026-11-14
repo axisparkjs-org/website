@@ -26,7 +26,7 @@ The only part that depends on the transport is how the client is identified. Eac
 
 1. Returns `undefined` when there is no definition, or no resolver or no store is registered for `context.transport`.
 2. Gets the client identifier from the resolver of the transport. When it returns `undefined`, the request is counted in an `unknown` bucket shared by every client without an identifier.
-3. Builds the bucket key with the transport, the client identifier, `context.target.name` and `context.propertyKey`. The key identifies the handler, not the requested URL, so the path parameters and the query string do not create new buckets.
+3. Builds the bucket key with the transport, the client identifier, the class of the handler and `context.propertyKey`. The key identifies the handler, not the requested URL, so the path parameters and the query string do not create new buckets. The class is identified by its name, and two classes with the same name never share buckets: the first one registered keeps the name and the others get `<name>#<n>` in registration order.
 4. Counts the request in the store with the sliding window of the definition and returns the decision.
 
 A `limit` of `0` or less denies every request. The in-memory store removes the expired buckets every 256 checks.
