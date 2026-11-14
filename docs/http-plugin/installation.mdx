@@ -280,4 +280,22 @@ The value is passed to the `trust proxy` setting of Express and to the `trustPro
 Trust only the proxies you control. With `trustProxy` set, a client that reaches the application without going through a trusted proxy can send its own `X-Forwarded-For` header and choose the address that the application sees.
 :::
 
+### Static files with Fastify
+
+The Fastify adapter serves the files of the `public` folder of the `basePath` of the application, but only when the folder exists, so an API without static files does not register a static route. Set `staticFiles` to choose it explicitly, and `staticFilesOptions` to change the folder and the URL prefix:
+
+```ts title="app.ts"
+import { HttpPluginOptionsFactory } from '@axisparkjs/http-fastify';
+
+app.use(
+    HttpPlugin,
+    HttpPluginOptionsFactory.create({
+        staticFiles: true, // Always serve them; `false` never serves them.
+        staticFilesOptions: { root: 'assets', prefix: '/assets/' } // Relative to the basePath. Defaults: `public` and `/`.
+    })
+);
+```
+
+The file results (`HttpResults.File()`) work with every value, because they send the file from its own folder. The Express adapter does not serve static files.
+
 > Set `healthChecks: true` to expose the `/health`, `/health/liveness` and `/health/readiness` endpoints. Check the [Health Checks](../getting-started/health-checks) page for more information.
