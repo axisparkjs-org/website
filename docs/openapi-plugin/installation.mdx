@@ -101,5 +101,26 @@ export interface OpenApiPluginOptions extends PluginOptions {
      * If true, the OpenAPI plugin will expose the YAML document as a REST endpoint.
      */
     exposeYaml?: boolean;
+    /**
+     * If true, the JSON responses documented with @OpenApiResponse() are serialized with their schema by the adapters that support it (Fastify).
+     */
+    serializeResponses?: boolean;
 }
 ```
+
+## Serializing the responses with their schemas
+
+With the Fastify adapter, set `serializeResponses: true` to serialize the JSON responses of the documented routes with the schemas of the document, using the `fast-json-stringify` serializer of Fastify instead of `JSON.stringify`:
+
+```ts title="app.ts"
+app.use(OpenApiPlugin, OpenApiPluginOptionsFactory.create({ info: { title: 'Shop', version: '1.0.0' }, serializeResponses: true }));
+```
+
+- The schema of each status code of `@OpenApiResponse()` is used for that status, and the `default` response for the rest.
+- Only the bodies that match the root of the schema are serialized with it: an object for a schema of a class, an array for an `array` schema. `null`, primitives and the other bodies are serialized with `JSON.stringify`.
+- Routes that serve several handlers (versions or hosts of the same path) are always serialized with `JSON.stringify`.
+- The Express adapter ignores the option.
+
+:::warning
+The properties that are not in the schema are **not sent**. Enable the option only when the `@OpenApiProperty()` of your response classes describe every property that the clients need.
+:::
