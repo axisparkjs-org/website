@@ -21,11 +21,11 @@ AxiSpark.js comes with a set of built-in pipe-steps that you can use out of the 
     </thead>
     <tbody>
         <tr>
-            <td><code>Default(value, options?: { emptyString?: boolean })</code></td>
+            <td><code>Default(value, options?: &#123; emptyString?: boolean &#125;)</code></td>
             <td>Returns <code>value</code> when the parameter is <code>undefined</code> (also an empty string with <code>emptyString: true</code>), so the next pipe-steps receive it. Objects and arrays are copied for each execution. Never fails. See <a href="#optional-parameters">Optional Parameters</a>.</td>
         </tr>
         <tr>
-            <td><code>Optional(options?: { emptyString?: boolean })</code></td>
+            <td><code>Optional(options?: &#123; emptyString?: boolean &#125;)</code></td>
             <td>When the parameter is <code>undefined</code> (also an empty string with <code>emptyString: true</code>), skips the rest of the pipe-steps of the parameter and the handler receives <code>undefined</code>. Never fails.</td>
         </tr>
         <tr>
@@ -65,11 +65,11 @@ AxiSpark.js comes with a set of built-in pipe-steps that you can use out of the 
             <td>Returns an array from a comma-separated string, a single value or an array. Options: <code>separator</code>, <code>items</code> (a pipe-step applied to each item, such as <code>ParseInt()</code>), <code>minItems</code>, <code>maxItems</code> and <code>unique</code>. See <a href="#lists">Lists</a>.</td>
         </tr>
         <tr>
-            <td><code>ParseDate(options?: { dateOnly?: boolean })</code></td>
+            <td><code>ParseDate(options?: &#123; dateOnly?: boolean &#125;)</code></td>
             <td>Transforms an ISO 8601 string to a <code>Date</code>: a date (<code>2026-03-01</code>, read as midnight UTC) or a date-time with <code>Z</code> or an offset (<code>2026-03-01T10:30:00+02:00</code>). Date-times without an offset and invalid dates such as <code>2026-02-30</code> are rejected. With <code>dateOnly: true</code>, only <code>YYYY-MM-DD</code> is accepted.</td>
         </tr>
         <tr>
-            <td><code>ParseEnum(enumOrValues, options?: { ignoreCase?: boolean })</code></td>
+            <td><code>ParseEnum(enumOrValues, options?: &#123; ignoreCase?: boolean &#125;)</code></td>
             <td>Accepts a value of a TypeScript enum (string or numeric) or of an array of values, and returns the value of the enum (<code>'1'</code> is returned as <code>1</code> for a numeric enum). The error lists the allowed values.</td>
         </tr>
         <tr>
