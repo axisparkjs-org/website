@@ -116,7 +116,13 @@ export class ProductService {
 - `evict(Class, 'method')` increments the generation of the handler in the store of every transport. The old entries are never read again and expire with their `ttl`. It works with every `CacheStore`, without deleting keys by prefix.
 - `evict(Class, 'method', key)` deletes one entry. The `key` is the key returned by the resolver of the transport, or by the custom `key` of `@Cache()`, so it is easier to use with a custom key.
 
-Reading the generation is one more read of the store on each cached request.
+The generation read from a store is kept in memory for one second, so a cached request costs one read of the store, not two. `evict()` updates the generation kept in memory at once, so the process that evicts never returns the old entries. Other processes that share the store, such as the replicas of an application with `RedisStore`, read the new generation when their copy expires, so they can return the old entries for up to one second after the eviction. Change the time with `CacheProcessor.setGenerationTtl(ms)` before the application starts; `0` reads the generation on every request:
+
+```ts title="main.ts"
+import { CacheProcessor } from '@axisparkjs/engine';
+
+CacheProcessor.setGenerationTtl(0); // Evictions are seen at once by every replica, at the cost of one more read per request.
+```
 
 ## Serialization
 
