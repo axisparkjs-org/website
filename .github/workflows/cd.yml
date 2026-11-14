@@ -145,7 +145,6 @@ jobs:
 
       # Called by the CI: artifact for the staging image.
       - name: Upload site
-        if: github.event_name != 'repository_dispatch' && github.event.inputs.group == 'staging'
         uses: actions/upload-artifact@v7
         with:
           name: website-build
@@ -171,7 +170,6 @@ jobs:
   staging:
     name: Publish staging image
     needs: build
-    if: github.event_name != 'repository_dispatch' && github.event.inputs.group == 'staging'
     runs-on: ubuntu-latest
     permissions:
       contents: read
