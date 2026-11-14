@@ -65,7 +65,7 @@ export class ProductController {
 
 1. Runs the before steps: the middlewares, the **guards** and the before interceptors. Authentication, rate limits and validation run on every request, also on cache hits.
 2. When the plan has a cache definition and the resolver of the transport returns a key, reads the store. On a **hit**, returns the cached result without invoking the handler.
-3. On a **miss**, invokes the handler. When it finishes without error, stores its result with the `ttl`.
+3. On a **miss**, invokes the handler. When it finishes without error, stores its result with the `ttl`. Concurrent misses of the same key in the same process share one invocation (single-flight): the first request invokes the handler and the others wait for its result, so a popular entry that expires does not run the handler once per request. When that invocation fails, or its result is not cached, each waiting request invokes the handler itself.
 4. Runs the after interceptors and the result processor as usual, so a cached result produces the same response as a fresh one.
 
 Rules:
