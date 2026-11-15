@@ -141,7 +141,7 @@ Transporters are responsible for sending log messages to their final destination
     <tbody>
         <tr>
             <td>`ConsoleTransport`</td>
-            <td>Sends log messages to the console with `console.log`, so they are written to the standard output (`stdout`).</td>
+            <td>Sends log messages to the standard output (`stdout`) through a buffered asynchronous stream, so logging does not block the requests. Set `buffered: false` to write each message with `console.log`.</td>
         </tr>
         <tr>
             <td>`DailyFileTransport`</td>
@@ -177,6 +177,24 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
     </tbody>
 </table>
+
+### Buffered transporters
+
+`console.log` is synchronous when the standard output is a file or a pipe, as in containers, so under load each line blocks the event loop. `ConsoleTransport` writes to a buffered stream instead (`sonic-boom`), shared by every console transporter of the process: the lines are written when 4 KiB are waiting or at the end of the current tick of the event loop, and the lines still waiting are written synchronously when the process exits.
+
+`app.destroy()` calls `logger.flush()` after its last message, which waits for the transporters that keep entries in memory. Call it yourself before exiting the process in other ways:
+
+```ts
+await logger.flush();
+```
+
+Because the logger writes to its own stream, its lines can be written after a `console.log` of your code that ran later. Set `buffered: false` when the order between both matters more than the performance:
+
+```ts
+new ConsoleTransport({ minLevel: LogLevel.Info, formatter: new SimpleFormatter(), buffered: false });
+```
+
+A custom transporter that keeps entries in memory overrides `flush()` of `LogTransport`, which does nothing by default.
 
 ### When a transporter fails
 
