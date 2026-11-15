@@ -1,0 +1,8 @@
+{
+    "label": "MCP Plugin",
+    "position": 9,
+    "link": {
+        "type": "generated-index",
+        "description": "The MCP Plugin exposes the tools, resources and prompts of an AxiSpark.js application to AI clients through the Model Context Protocol. This section covers installation, transports, capabilities, parameters, results and errors."
+    }
+}

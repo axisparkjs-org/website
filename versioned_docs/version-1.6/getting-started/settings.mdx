@@ -1,0 +1,211 @@
+---
+sidebar_position: 2
+---
+
+# Settings
+
+Every application needs configuration that changes between environments: ports, database URLs, secrets or feature flags. AxiSpark.js reads it from the environment variables and from `.env` files, converts each value to its type and validates everything when the application is created. A missing or invalid variable stops the application with one message that lists every problem, instead of failing later with a `NaN` port or on the first connection to the database.
+
+The settings are part of `@axisparkjs/core`, so they are available right after `AxiSparkFactory.create()`, before the plugins are registered, and they add no dependencies.
+
+## Defining the settings
+
+Give the `settings` option to `AxiSparkFactory.create()`. Its `load` function receives an `EnvReader` and returns the settings object:
+
+```ts title="app.ts"
+import { AxiSparkFactory } from '@axisparkjs/core';
+import { HttpPlugin } from '@axisparkjs/http';
+import { HttpPluginOptionsFactory } from '@axisparkjs/http-express';
+
+export const app = AxiSparkFactory.create({
+    name: 'Orders',
+    basePath: __dirname,
+    settings: {
+        envFiles: ['.env'],
+        load: (env) => ({
+            port: env.int('PORT', 3000),
+            databaseUrl: env.url('DATABASE_URL'),
+            sessionSecret: env.string('SESSION_SECRET', { minLength: 32 }),
+            cacheStore: env.enum('CACHE_STORE', ['memory', 'redis'], 'memory')
+        })
+    }
+});
+
+app.use(HttpPlugin, HttpPluginOptionsFactory.create({ port: app.settings.port }));
+```
+
+The `load` function runs once, synchronously, when the application is created. The type of `app.settings` is inferred from its return type, so `app.settings.port` is a `number` and `app.settings.cacheStore` is `'memory' | 'redis'`.
+
+<table>
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>`envFiles`</td>
+            <td>`.env` files to load, relative to the working directory. Missing files are ignored. A variable defined in a file is not replaced by the later files.</td>
+        </tr>
+        <tr>
+            <td>`load`</td>
+            <td>Builds the settings object from the `EnvReader`. Required.</td>
+        </tr>
+    </tbody>
+</table>
+
+Without the `settings` option nothing changes: `app.settings` is an empty object.
+
+## Reading the variables
+
+Each method of the `EnvReader` reads one variable, converts it and validates it. A variable without a default value is required. A variable defined with an empty value (`PORT=`) is treated as not defined.
+
+<table>
+    <thead>
+        <tr>
+            <th>Method</th>
+            <th>Returns</th>
+            <th>Options</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>`env.string(name, defaultOrOptions?)`</td>
+            <td>`string`</td>
+            <td>`default`, `minLength`, `pattern`</td>
+        </tr>
+        <tr>
+            <td>`env.int(name, defaultOrOptions?)`</td>
+            <td>`number` (an integer)</td>
+            <td>`default`, `min`, `max`</td>
+        </tr>
+        <tr>
+            <td>`env.float(name, defaultOrOptions?)`</td>
+            <td>`number`</td>
+            <td>`default`, `min`, `max`</td>
+        </tr>
+        <tr>
+            <td>`env.boolean(name, default?)`</td>
+            <td>`boolean`. `true`, `1`, `yes` and `on` are `true`; `false`, `0`, `no` and `off` are `false`, ignoring the case, as `ParseBoolean()`.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>`env.enum(name, values, default?)`</td>
+            <td>One of `values`, typed as their union.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>`env.url(name, defaultOrOptions?)`</td>
+            <td>`string` with an absolute URL.</td>
+            <td>`default`, `protocols` (for example `['postgres']`)</td>
+        </tr>
+        <tr>
+            <td>`env.json<T>(name, default?)`</td>
+            <td>The parsed JSON value, typed as `T`.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>`env.list(name, defaultOrOptions?)`</td>
+            <td>`string[]` from comma-separated values. The items are trimmed and the empty ones removed.</td>
+            <td>`default`, `separator`</td>
+        </tr>
+    </tbody>
+</table>
+
+The default value can be given directly (`env.int('PORT', 3000)`) or in the options (`env.int('PORT', { default: 3000, min: 1, max: 65535 })`).
+
+## Validation errors
+
+The methods of the reader do not throw: they record every problem, and after `load()` returns the core throws one `InvalidSettingsError` that lists all of them. The application is not created.
+
+```
+InvalidSettingsError: Invalid application settings:
+  - DATABASE_URL is required
+  - PORT must be an integer (received "30o0")
+  - SESSION_SECRET must have at least 32 characters
+```
+
+The values of the variables are not printed for the rules that can involve secrets (`minLength` and `pattern` of strings, URLs and JSON), and long values are truncated. The error also has an `errors` property with the list of problems.
+
+## `.env` files
+
+The files of `envFiles` are parsed with `util.parseEnv()` of Node.js, so they follow the usual `.env` format: `KEY=value` lines, quoted values and `#` comments.
+
+```bash title=".env"
+PORT=8080
+DATABASE_URL=postgres://orders:orders@localhost:5432/orders
+SESSION_SECRET="a-long-secret-with-at-least-32-characters"
+```
+
+- The real environment variables always win over the values of the files, so the deployment can replace any value.
+- With several files, the earlier ones win: `envFiles: ['.env.local', '.env']` reads `.env.local` first and uses `.env` for the variables it does not define.
+- The files are only read: `process.env` is not modified.
+
+Keep the `.env` file out of version control and commit a `.env.example` with the variables of the application, as the templates of `axispark create` do.
+
+## Using the settings
+
+### Before `init()`
+
+`app.settings` is available as soon as the application is created, so you can use it to build the options of the plugins, as in the example above.
+
+### By injection
+
+The settings object is bound in the container. Inject it with the `@EnvSettings()` decorator, or with `@Inject(AXISPARK_ENV_SETTINGS)`:
+
+```ts title="settings.ts"
+import { EnvReader } from '@axisparkjs/core';
+
+export const loadSettings = (env: EnvReader) => ({
+    smtpUrl: env.url('SMTP_URL', { protocols: ['smtp', 'smtps'] }),
+    sender: env.string('MAIL_SENDER', 'no-reply@example.com')
+});
+
+export type AppSettings = ReturnType<typeof loadSettings>;
+```
+
+```ts title="mail.service.ts"
+import { EnvSettings } from '@axisparkjs/core';
+import { Injectable } from '@axisparkjs/di';
+import { AppSettings } from './settings';
+
+@Injectable()
+export class MailService {
+    constructor(@EnvSettings() private readonly settings: AppSettings) {}
+
+    async send(to: string) {
+        // this.settings.smtpUrl, this.settings.sender
+    }
+}
+```
+
+Give `loadSettings` to the `settings` option (`settings: { envFiles: ['.env'], load: loadSettings }`) so the type is shared by `app.settings` and the injected services.
+
+You can also type the injected settings once for the whole application by augmenting the `EnvSettings` interface:
+
+```ts
+declare module '@axisparkjs/core' {
+    interface EnvSettings {
+        smtpUrl: string;
+        sender: string;
+    }
+}
+```
+
+### Settings cannot change
+
+The settings object is deeply frozen with `Object.freeze`, so its values, nested objects and arrays cannot be changed at runtime. The framework never logs it.
+
+## Testing
+
+`AxiSparkTestFactory.create()` of `@axisparkjs/test` accepts a `settings` object that replaces the settings of the application, without reading the environment variables or the `.env` files. It is available in `app.settings` and by injection:
+
+```ts title="mail.service.spec.ts"
+const testApp = AxiSparkTestFactory.create({
+    providers: [MailService],
+    settings: { smtpUrl: 'smtp://localhost:2525', sender: 'test@example.com' }
+});
+```
+
+When `settings` is not given and the `app` option is, the test instance uses the settings already loaded by that application. The options of the plugins were built with the settings of the application when it was created, so they are not affected by the `settings` of the test.

@@ -1,0 +1,214 @@
+---
+sidebar_position: 9
+---
+
+# Stores
+
+Some features keep state between requests or executions: the rate limits count the requests of each client, the exclusive jobs of the scheduler hold a lock while they run, and the cached handlers keep their results. That state is kept in a **store**.
+
+Every feature uses an **in-memory store by default**, so it works without any configuration. The in-memory stores are local to the process: when the application runs on several instances, each instance has its own counters and locks. To share them, pass a shared store in the options of the plugin, such as `RedisStore` from `@axisparkjs/redis`:
+
+```ts title="app.ts"
+import { RedisPlugin, RedisPluginOptionsFactory, RedisStore } from '@axisparkjs/redis';
+import { SchedulePlugin, SchedulePluginOptionsFactory } from '@axisparkjs/schedule';
+import { HttpPlugin } from '@axisparkjs/http';
+import { HttpPluginOptionsFactory } from '@axisparkjs/http-express';
+
+const redis = RedisStore('MAIN', { prefix: 'myapp:' });
+
+app.use(RedisPlugin, RedisPluginOptionsFactory.create({ connections: [{ name: 'MAIN', url: 'redis://localhost:6379' }] }));
+app.use(SchedulePlugin, SchedulePluginOptionsFactory.create({ lockStore: redis }));
+app.use(
+    HttpPlugin,
+    HttpPluginOptionsFactory.create({
+        rateLimit: true,
+        rateLimitOptions: { ttl: 60_000, limit: 100, store: redis }
+    })
+);
+```
+
+The types, the contracts and the in-memory stores live in the `@axisparkjs/store` package, which the plugins install as a dependency.
+
+## Store providers
+
+`RedisStore('MAIN')` is not a store: it is a **store provider**, a function that the plugin calls with the **kind** of store it needs. The provider returns the implementation of that kind, so one provider can be passed to every plugin. For one kind, a provider is a function like this one, and a provider of several kinds has one signature per kind:
+
+```ts
+type StoreFactory<K extends StoreKind> = (kind: K, context: StoreContext) => StoreTypes[K] | Promise<StoreTypes[K]>;
+```
+
+The plugins call their provider when they start, after every plugin has been registered. A provider can use the connections registered by other plugins, such as the Redis connections, whatever the order of the plugins. When a provider fails, for example because a connection is not configured, the application fails to start.
+
+The `context` contains the dependency injection `container` and the `logger` of the application.
+
+## Where the stores are used
+
+| Plugin | Option | Kind | Default |
+| --- | --- | --- | --- |
+| HTTP | `rateLimitOptions.store` | `rate-limit` | `MemoryStore()` |
+| WebSocket | `rateLimitOptions.store` | `rate-limit` | `MemoryStore()` |
+| HTTP | `cacheOptions.store` | `cache` | `MemoryStore()` |
+| Schedule | `lockStore` | `lock` | `MemoryStore()` |
+
+The HTTP plugin keeps in the `cache` store the results of the handlers decorated with `@Cache()`. See [Cache](../engine-system/cache) and [HTTP caching](../http-plugin/caching). Your own plugins can also create a cache store from a provider, as shown in [using stores in your own plugins](#using-stores-in-your-own-plugins).
+
+## Available providers
+
+| Provider | Package | Kinds | Shared between instances |
+| --- | --- | --- | --- |
+| `MemoryStore()` | `@axisparkjs/store` | `rate-limit`, `lock`, `cache` | No |
+| `RedisStore(connection, options?)` | `@axisparkjs/redis` | `rate-limit`, `lock`, `cache` | Yes |
+
+Each provider declares the kinds it supports, so passing a provider that does not implement the kind required by an option is a TypeScript error. See [Redis stores](../connections/redis#stores) for the options of `RedisStore`.
+
+## Kinds of store
+
+### `rate-limit`
+
+Counts the requests of the rate limits with a sliding window. `consume()` counts a request when the limit of the policy allows it:
+
+```ts
+interface RateLimitStore {
+    consume(key: string, policy: RateLimitPolicy): RateLimitDecision | Promise<RateLimitDecision>;
+}
+
+interface RateLimitPolicy {
+    readonly ttl: number; // The sliding window in milliseconds.
+    readonly limit: number; // The maximum number of requests in the window.
+}
+
+interface RateLimitDecision {
+    allowed: boolean;
+    retryAfterMs: number; // Milliseconds until the oldest request leaves the window. 0 when the request is allowed.
+}
+```
+
+A `limit` of `0` or less denies every request. See [Rate limits](../engine-system/rate-limits) for how the keys are built.
+
+### `lock`
+
+Acquires locks with an expiration, without waiting. Each lock has a random token, so an owner never releases or extends a lock that expired and was acquired by another owner:
+
+```ts
+interface LockStore {
+    acquire(key: string, ttlMs: number): Promise<Lock | undefined>; // undefined when another owner holds the lock.
+}
+
+interface Lock {
+    readonly key: string;
+    readonly token: string;
+    release(): Promise<boolean>; // false when the lock expired or is owned by another owner.
+    extend(ttlMs: number): Promise<boolean>;
+}
+```
+
+> Register the plugin of a shared store, such as the `RedisPlugin`, before the plugins that use it. The plugins stop in reverse registration order, so the Schedule Plugin can [wait for its jobs](../schedule-plugin/managing-a-job#stopping-the-scheduler) and release their locks before the store is closed.
+
+### `cache`
+
+Stores values with an optional time to live. Shared stores serialize the values with JSON, so use values that can be converted to JSON. `MemoryStore()` keeps the values as they are:
+
+```ts
+interface CacheStore {
+    get<T>(key: string): Promise<T | undefined>;
+    set<T>(key: string, value: T, ttlMs?: number): Promise<void>;
+    delete(key: string): Promise<void>;
+}
+```
+
+See [Cache](../engine-system/cache#keys-and-eviction) for how the cached results of the handlers are stored.
+
+## Using stores in your own plugins
+
+A plugin that needs a store accepts a `StoreProvider` in its options, with `MemoryStore()` as the default, and calls it in `onStart` with its context. This is how the HTTP and Schedule plugins create their stores:
+
+```ts title="catalog-plugin.ts"
+import { AxiSparkContext, Plugin, PluginOptions } from '@axisparkjs/core';
+import { Injectable, InjectionToken } from '@axisparkjs/di';
+import { MemoryStore, StoreProvider } from '@axisparkjs/store';
+
+export const PRODUCT_CACHE = new InjectionToken('PRODUCT_CACHE');
+
+export interface CatalogPluginOptions extends PluginOptions {
+    cacheStore?: StoreProvider<'cache'>;
+}
+
+@Injectable()
+export class CatalogPlugin extends Plugin {
+    private context: AxiSparkContext;
+    protected options?: CatalogPluginOptions;
+
+    onRegister(context: AxiSparkContext, options?: CatalogPluginOptions): void {
+        this.context = context;
+        this.options = options;
+    }
+
+    async onStart(): Promise<void> {
+        const provider = this.options?.cacheStore ?? MemoryStore();
+        this.context.container.bind({ token: PRODUCT_CACHE, useValue: await provider('cache', this.context) });
+    }
+}
+```
+
+The services of the plugin inject the store with `@Inject(PRODUCT_CACHE)`. Calling the provider in `onStart`, and not in `onRegister`, lets a shared provider use the connections that other plugins register.
+
+## Custom stores
+
+Any function that returns a store of the required kind is a provider, so a custom store does not need a provider of its own:
+
+```ts title="app.ts"
+import { RateLimitDecision, RateLimitPolicy, RateLimitStore } from '@axisparkjs/store';
+
+class DatabaseRateLimitStore implements RateLimitStore {
+    async consume(key: string, policy: RateLimitPolicy): Promise<RateLimitDecision> {
+        // Count the request of the key in a sliding window of policy.ttl milliseconds.
+    }
+}
+
+HttpPluginOptionsFactory.create({
+    rateLimit: true,
+    rateLimitOptions: { ttl: 60_000, limit: 100, store: () => new DatabaseRateLimitStore() }
+});
+```
+
+To support several kinds in one provider, as `RedisStore` does, create the store of the requested kind and throw a `StoreKindNotSupportedError` for the others:
+
+```ts title="database-store.ts"
+import { StoreContext, StoreKind, StoreKindNotSupportedError, StoreProvider } from '@axisparkjs/store';
+
+export function DatabaseStore(): StoreProvider<'rate-limit' | 'cache'> {
+    const provider = async (kind: StoreKind, context: StoreContext) => {
+        if (kind === 'rate-limit') return new DatabaseRateLimitStore();
+        if (kind === 'cache') return new DatabaseCacheStore();
+        throw new StoreKindNotSupportedError('DatabaseStore', kind);
+    };
+    return provider as StoreProvider<'rate-limit' | 'cache'>;
+}
+```
+
+The provider has one signature per kind, so the implementation is cast to `StoreProvider`.
+
+## Custom kinds of store
+
+A package can add its own kind with declaration merging on `StoreTypes`, and then accept a `StoreProvider` of that kind in its options:
+
+```ts title="session-store.ts"
+import { StoreProvider } from '@axisparkjs/store';
+
+export interface SessionStore {
+    load(id: string): Promise<Record<string, unknown> | undefined>;
+    save(id: string, data: Record<string, unknown>, ttlMs: number): Promise<void>;
+}
+
+declare module '@axisparkjs/store' {
+    interface StoreTypes {
+        session: SessionStore;
+    }
+}
+
+export interface SessionPluginOptions {
+    store?: StoreProvider<'session'>;
+}
+```
+
+The existing providers do not implement the new kind, so they cannot be passed to that option until they do.
