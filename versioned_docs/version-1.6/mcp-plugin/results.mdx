@@ -1,0 +1,100 @@
+---
+sidebar_position: 3
+---
+
+# Results and errors
+
+The value returned by an MCP handler is converted into the result of its kind of request. Return a plain value for the common cases, or an `McpResults` helper to control the content.
+
+## Returned values
+
+| Returned value | Tool | Resource | Prompt |
+| --- | --- | --- | --- |
+| `string` | A `text` content. | A text with the resource `mimeType`, or `text/plain`. | A `user` message with a `text` content. |
+| Object or array | A `text` content with the JSON. Plain objects are also sent as `structuredContent`. | A text with the JSON and the resource `mimeType`, or `application/json`. | A `user` message with the JSON. |
+| `Buffer` or `Uint8Array` | An embedded resource with a binary blob. | A binary blob with the resource `mimeType`, or `application/octet-stream`. | A `user` message with an embedded resource. |
+| `undefined` or `null` | An empty `content`. | An empty `contents`. | An empty `messages`. |
+
+```ts
+@McpTool({ description: 'Count the users' })
+count() {
+    return `There are ${this.users.count()} users`;
+}
+
+@McpResource('users://all', { mimeType: 'application/json' })
+all() {
+    return this.users.findAll();
+}
+```
+
+## McpResults
+
+`McpResults` creates results with a specific content:
+
+| Helper | Result |
+| --- | --- |
+| `McpResults.Text(text)` | A text content. |
+| `McpResults.Json(value)` | A JSON text, and the value as `structuredContent` for tools. |
+| `McpResults.Image(data, mimeType)` | An image. `data` is a `Buffer`, a `Uint8Array` or a string encoded in base64. |
+| `McpResults.Audio(data, mimeType)` | An audio clip. |
+| `McpResults.Resource(uri, contents, mimeType?)` | An embedded resource with text or binary contents. |
+| `McpResults.ResourceLink(uri, name, options?)` | A link to a resource that the client can read later. |
+| `McpResults.Content(content, structuredContent?)` | A list of content blocks. |
+| `McpResults.Messages(messages, description?)` | The messages of a prompt, with `user` and `assistant` roles. |
+| `McpResults.Raw(result)` | A result sent to the client without any conversion. |
+| `McpResults.Error(error)` | An error. See [Errors](#errors). |
+
+```ts
+import { McpPrompt, McpResults, McpTool } from '@axisparkjs/mcp';
+
+@McpTool({ description: 'Render the chart of the sales' })
+async chart() {
+    return McpResults.Image(await this.charts.renderPng(), 'image/png');
+}
+
+@McpPrompt({ description: 'Start a code review' })
+review() {
+    return McpResults.Messages([
+        { role: 'user', content: { type: 'text', text: 'Review my last commit.' } },
+        { role: 'assistant', content: { type: 'text', text: 'Sure, paste the diff.' } }
+    ]);
+}
+```
+
+## Errors
+
+Errors thrown in the handlers, and the errors of the pipes, are caught by a global filter for the MCP transport and returned to the client. The session stays open and the server keeps working.
+
+- **Tools** return the error as a tool result with `isError: true` and the error message as text. The model can read the error and recover, for example by calling the tool again with valid arguments.
+- **Resources and prompts** return the error as a JSON-RPC error.
+
+Throw an `McpError` to choose the JSON-RPC code and attach data:
+
+```ts
+import { McpError, McpErrorCode, McpParam, McpResource } from '@axisparkjs/mcp';
+
+@McpResource('users://{id}', { mimeType: 'application/json' })
+profile(@McpParam('id') id: string) {
+    const user = this.users.findById(id);
+    if (!user) throw new McpError(`User '${id}' not found`, McpErrorCode.InvalidParams, { data: { id } });
+    return user;
+}
+```
+
+Other errors are returned with the `InternalError` code (`-32603`), and validation and parsing errors of the pipes with `InvalidParams` (`-32602`). Unknown tools, resources and prompts are answered with `InvalidParams`.
+
+Timeouts work as in the other transports. Set a default with the `timeout` option of the plugin, or a timeout per class or method with `@Timeout()`. A request that runs out of time returns the error `Request timed out after <time>ms`.
+
+```ts
+import { Timeout } from '@axisparkjs/engine';
+
+@McpTool({ description: 'Generate the yearly report' })
+@Timeout(30000)
+async report() {
+    return this.reports.generate();
+}
+```
+
+## Lifecycle
+
+The transport starts when the application runs and stops when it is destroyed. Stopping the application closes the open sessions and connections of the HTTP transport, and the connection of the stdio transport.

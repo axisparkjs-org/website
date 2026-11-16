@@ -1,0 +1,140 @@
+---
+sidebar_position: 3
+---
+
+# Derived queries
+
+The Data plugin can generate read queries from a repository method's name. It parses the method against the entity's TypeORM metadata, binds method arguments as query parameters, and dispatches to `SQLQueryEngine` or `MongoQueryEngine` according to the owning data source.
+
+## Method structure
+
+The supported shape is:
+
+```text
+<operation-prefix><predicate>[OrderBy<property><direction>[And<property><direction>...]]
+```
+
+The property names come from the entity's TypeORM metadata. Use entity property names in camel case; the parser resolves them against metadata rather than passing arbitrary field names into SQL.
+
+| Prefix | Result | Example |
+| --- | --- | --- |
+| `findBy` | `Promise<Entity[]>`, or `Promise<Page<Entity>>` with a `PageRequest` | `findByStatus(status)` |
+| `findOneBy` | Entity or `null` | `findOneByEmail(email)` |
+| `countBy` | `Promise<number>` | `countByStatus(status)` |
+| `existsBy` | `Promise<boolean>` | `existsByEmail(email)` |
+| `deleteBy` | `Promise<number>`, the number of deleted entities | `deleteByStatus(status)` |
+
+Use `declare` to add these method types to your repository class; the proxy provides the runtime implementation.
+
+## Predicates and operators
+
+Without a suffix, a property means equality. These suffixes are supported:
+
+| Suffix | Arguments | Meaning |
+| --- | --- | --- |
+| _(none)_ | one value | Equality |
+| `IsNull` | none | Property is null |
+| `IsNotNull` | none | Property is not null |
+| `GreaterThan` | one value | `>` |
+| `GreaterThanEqual` | one value | `>=` |
+| `LessThan` | one value | `<` |
+| `LessThanEqual` | one value | `<=` |
+| `Between` | lower and upper values | Inclusive range |
+| `Not` | one value | Not equal (`<>`) |
+| `In` | one array | Value is in the array |
+| `NotIn` | one array | Value is not in the array |
+| `Like` | one string | Pattern matching, with the `%` and `_` wildcards of the value |
+| `Containing` | one string | Contains the value (`LIKE %value%`) |
+| `StartingWith` | one string | Starts with the value (`LIKE value%`) |
+| `EndingWith` | one string | Ends with the value (`LIKE %value`) |
+| `True` | none | Boolean property is `true` |
+| `False` | none | Boolean property is `false` |
+
+Add `IgnoreCase` after a property, or after `Not`, `Like`, `Containing`, `StartingWith` or `EndingWith`, to compare the strings without case: `findByNameIgnoreCase`, `findByNameContainingIgnoreCase`. In SQL both sides are compared with `LOWER()`, and in MongoDB the regular expression uses the `i` flag.
+
+The values of `Containing`, `StartingWith` and `EndingWith` are escaped, so a `%` or `_` in the value is matched literally: `findByNameContaining('10%')` matches `10% off` and not `100 off`. Use `Like` to give your own pattern.
+
+Property names are matched before the keywords, so a property such as `notes` or `activeTrue` is never read as `Not` or `True`.
+
+The number and order of arguments must match the predicates from left to right. A predicate with `Between` consumes two arguments; `In` consumes one array argument.
+
+```ts
+declare findByStatusAndAgeGreaterThan: (status: string, age: number) => Promise<User[]>;
+declare findByCreatedAtBetween: (from: Date, to: Date) => Promise<User[]>;
+declare findByStatusIn: (statuses: string[]) => Promise<User[]>;
+declare findByNameContainingIgnoreCase: (name: string) => Promise<User[]>;
+declare findByStatusNot: (status: string) => Promise<User[]>;
+declare findByActiveTrue: () => Promise<User[]>;
+```
+
+`In` with an empty array matches nothing, and `NotIn` with an empty array matches every entity. `Not` and `NotIn` follow the SQL rules for `NULL`: entities whose property is `NULL` are not matched.
+
+`And` binds more tightly than `Or`. For example:
+
+```ts
+declare findByStatusAndAgeGreaterThanOrEmail: (status: string, age: number, email: string) => Promise<User[]>;
+```
+
+means `(status = ? AND age > ?) OR (email = ?)`. Empty groups and unknown property/operator names are rejected with an error.
+
+## Ordering
+
+Add one `OrderBy` clause after all predicates. Separate multiple properties with `And`, and add `Asc` or `Desc` to each property. The direction defaults to ascending:
+
+```ts
+declare findByStatusOrderByAgeDescAndEmailAsc: (status: string) => Promise<User[]>;
+declare findByStatusOrderByEmail: (status: string) => Promise<User[]>; // email ASC
+```
+
+`countBy`, `existsBy` and `deleteBy` do not accept `OrderBy`, because ordering cannot affect those results.
+
+## Pagination
+
+Pass a `PageRequest` as the final argument of `findBy` methods. `page` is zero-based, and `size` must be a positive integer. The method resolves with a `Page`, with the entities of the page and the totals of every page:
+
+```ts
+import { Page, PageRequest } from '@axisparkjs/data';
+
+declare findByStatusOrderByCreatedAtDesc: (status: string, page: PageRequest) => Promise<Page<User>>;
+
+const page = await users.findByStatusOrderByCreatedAtDesc('active', { page: 1, size: 25 });
+// { content: [...], page: 1, size: 25, totalElements: 60, totalPages: 3 }
+```
+
+| Property | Value |
+| --- | --- |
+| `content` | The entities of the page. |
+| `page` | The zero-based index of the page. |
+| `size` | The number of entities requested per page. |
+| `totalElements` | The number of entities that match the predicates, in every page. |
+| `totalPages` | The number of pages, `0` when no entity matches. |
+
+The total is counted with the same predicates: the SQL engine uses `getManyAndCount()` with TypeORM `skip` and `take`, and the Mongo engine runs `countDocuments()` with the same filter. To page a query that is not derived, use [`findPage()`](./repositories.mdx#paging-other-queries).
+
+:::warning Breaking change
+In the previous versions, a `findBy` method with a `PageRequest` resolved with the array of entities. Read them from `page.content` now, and declare the method as `Promise<Page<T>>`.
+:::
+
+ Pagination is supported only for `findBy`. SQL Server (`mssql`) requires an `OrderBy` when paging, so include one in the method name.
+
+## SQL and MongoDB mapping
+
+The same method format is translated to the active database's query model:
+
+- SQL predicates use TypeORM `SelectQueryBuilder`, SQL comparison operators, and bound parameters. `Like` uses SQL `%` and `_` wildcards.
+- MongoDB predicates become Mongo filters such as `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$and`, and `$or`. `Like` converts `%` to `.*` and `_` to `.`, and uses a case-sensitive regular expression.
+- `IsNull` maps to Mongo's `{ field: null }`, which also matches documents where the field is absent. `IsNotNull` maps to `{ field: { $ne: null } }`.
+
+SQL `Like` case sensitivity depends on the database collation; use `IgnoreCase` for case-insensitive comparisons in every database. Mongo's generated regex is case-sensitive unless `IgnoreCase` is used.
+
+## Derived deletes
+
+`deleteBy` methods delete the entities that match the same predicates as `findBy`, and resolve with the number of deleted entities:
+
+```ts
+declare deleteByStatus: (status: string) => Promise<number>;
+
+const deleted = await products.deleteByStatus('archived');
+```
+
+They join the active transaction like the other repository calls, so a `deleteBy` inside a `@Transactional()` method is rolled back when the method throws. In SQL, the primary keys of the matching entities are selected first and the entities are deleted by primary key, so the predicates work in every SQL driver. In MongoDB, the filter is passed to `deleteMany()`. The entity listeners and subscribers of TypeORM for removals (`@BeforeRemove()`, `@AfterRemove()`) do not run; use `remove()` when you need them.

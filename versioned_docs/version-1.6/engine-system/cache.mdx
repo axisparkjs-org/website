@@ -1,0 +1,159 @@
+---
+sidebar_position: 7
+---
+
+# Cache
+
+The engine can cache the results of the handlers, with the same algorithm for every transport. A handler decorated with `@Cache()` returns its stored result while it is valid, instead of running again. The results are kept in the `cache` [store](../getting-started/stores): `MemoryStore()` by default, or a shared store such as `RedisStore` to share the cache between the instances of the application.
+
+```ts title="product.controller.ts"
+import { Cache } from '@axisparkjs/engine';
+import { Controller, Get, Path } from '@axisparkjs/http';
+
+@Controller('products')
+export class ProductController {
+    constructor(private readonly products: ProductService) {}
+
+    @Get(':id')
+    @Cache({ ttl: 30_000 })
+    async find(@Path('id') id: string) {
+        return this.products.find(id);
+    }
+}
+```
+
+The cache is **opt-in**: a handler is never cached unless it, or its class, is decorated with `@Cache()`. There is no default for the whole transport, because caching every request by default could return the data of one user to another one.
+
+## Decorators
+
+```ts
+interface CacheConfiguration {
+    /** The time to live of the cached result in milliseconds. Defaults to the `cacheOptions.ttl` of the transport, or 60 seconds. */
+    ttl?: number;
+    /** Builds the key from the context, replacing the key of the transport resolver. Returning `undefined` does not cache the request. */
+    key?: (context: ExecutionContext) => string | undefined;
+}
+
+function Cache(options?: CacheConfiguration): MethodDecorator & ClassDecorator;
+function NoCache(): MethodDecorator & ClassDecorator;
+```
+
+- `@Cache()` on a class caches every handler of the class. The options of a method replace the options of its class.
+- `@NoCache()` on a method disables the `@Cache()` of its class. On a class, it disables the cache of its handlers, unless a method has its own `@Cache()`.
+- A `ttl` that is not a number greater than `0` throws an error when the decorator is applied.
+
+```ts
+@Controller('products')
+@Cache({ ttl: 10_000 })
+export class ProductController {
+    @Get(':id')
+    find(@Path('id') id: string) {} // Cached for 10 seconds.
+
+    @Get()
+    @Cache({ ttl: 60_000 })
+    list() {} // Cached for 60 seconds.
+
+    @Get('stock/:id')
+    @NoCache()
+    stock(@Path('id') id: string) {} // Never cached.
+}
+```
+
+## Execution flow
+
+`ExecutionPlanner` adds the `cache` definition to the plan of each handler, computed once like the timeout. Then `ExecutionEngine.execute()`:
+
+1. Runs the before steps: the middlewares, the **guards** and the before interceptors. Authentication, rate limits and validation run on every request, also on cache hits.
+2. When the plan has a cache definition and the resolver of the transport returns a key, reads the store. On a **hit**, returns the cached result without invoking the handler.
+3. On a **miss**, invokes the handler. When it finishes without error, stores its result with the `ttl`.
+4. Runs the after interceptors and the result processor as usual, so a cached result produces the same response as a fresh one.
+
+Rules:
+
+- Only **plain results** are cached. `undefined` and the `ResultDefinition` instances, such as `HttpResults.File()`, streams, redirects or `HttpResults.Ok()`, are not cached, and a `debug` message explains why.
+- Errors are never cached.
+- **Store failures do not fail the request.** The cache is an optimization: when the store fails, for example because Redis is down, the handler runs as if there was no cache, and a `warn` message is logged at most once a minute for each transport.
+
+> The headers and cookies that a handler sets directly on `context.response` are not replayed on cache hits, because only the result of the handler is cached. Return the data from the handler, and set the headers in an after interceptor, which runs on every request.
+
+## Transports
+
+The engine does not know how to build the key of a request. Each transport registers a `CacheResolver`, which returns the key of the request, or `undefined` when the request cannot be cached:
+
+| Transport | Plugin option | Cached requests | Key | Resolver |
+| --- | --- | --- | --- | --- |
+| HTTP | `cacheOptions` | `GET` and `HEAD`, without `Authorization` or `Cookie` headers unless the handler has a custom `key`. | Method, host, path, sorted query string and the headers of `@CacheVary()`. | `HttpCacheResolver`. See [HTTP caching](../http-plugin/caching). |
+| WebSocket | — | Not supported yet. | — | — |
+| MCP | — | Not supported yet. | — | — |
+
+The handlers of a transport without a resolver are never cached, even with `@Cache()`.
+
+## Keys and eviction
+
+`CacheProcessor` builds the final key with the transport, the handler and its generation, so two handlers never share entries:
+
+```
+<transport>:<Class>.<method>:<generation>:<key>
+```
+
+The **generation** of a handler is a counter kept in the store with the key `gen:<Class>.<method>`. Inject `CacheService` in the services that change the data to evict the cached results:
+
+```ts title="product.service.ts"
+import { Injectable } from '@axisparkjs/di';
+import { CacheService } from '@axisparkjs/engine';
+
+@Injectable()
+export class ProductService {
+    constructor(private readonly cache: CacheService) {}
+
+    async changePrice(id: string, price: number) {
+        await this.repository.update(id, { price });
+        await this.cache.evict(ProductController, 'find'); // Every entry of the handler.
+    }
+}
+```
+
+- `evict(Class, 'method')` increments the generation of the handler in the store of every transport. The old entries are never read again and expire with their `ttl`. It works with every `CacheStore`, without deleting keys by prefix.
+- `evict(Class, 'method', key)` deletes one entry. The `key` is the key returned by the resolver of the transport, or by the custom `key` of `@Cache()`, so it is easier to use with a custom key.
+
+Reading the generation is one more read of the store on each cached request.
+
+## Serialization
+
+Shared stores, such as `RedisStore`, serialize the results with JSON: a `Date` comes back as a string, and class instances come back as plain objects. `MemoryStore()` keeps the results as they are, so a handler, or an interceptor, that mutates a cached object changes the cache. Return results that can be converted to JSON, and do not mutate them after they are returned.
+
+## Adding the cache to a custom transport
+
+A transport only needs a resolver that builds the key. The example uses a custom `ExecutionTransport.Other` transport whose context has a `command` and its `args`:
+
+```ts title="command-cache-resolver.ts"
+import { Injectable } from '@axisparkjs/di';
+import { CacheDefinition, CacheResolver, ExecutionContext } from '@axisparkjs/engine';
+
+type CommandContext = ExecutionContext & { command: string; args: unknown[] };
+
+@Injectable()
+export class CommandCacheResolver implements CacheResolver {
+    resolve(context: ExecutionContext, definition: CacheDefinition): string | undefined {
+        if (definition.key) return definition.key(context);
+        const { command, args } = context as CommandContext;
+        return JSON.stringify([command, args]);
+    }
+}
+```
+
+Register the resolver, and the default `ttl` of the transport, when the plugin is registered. Then register the store when the plugin starts, with the provider of its options and `MemoryStore()` by default, as the HTTP plugin does:
+
+```ts
+// onRegister
+CacheGenerator.registerCache(ExecutionTransport.Other, { ttl: this.options.cacheOptions?.ttl });
+CacheProcessor.registerCache(ExecutionTransport.Other, await this.injector.get(CommandCacheResolver));
+
+// onStart
+const provider = this.options.cacheOptions?.store ?? MemoryStore();
+CacheProcessor.registerCacheStore(ExecutionTransport.Other, await provider('cache', this.context));
+```
+
+Passing `undefined` to `CacheProcessor.registerCache(transport)` or `CacheProcessor.registerCacheStore(transport)` disables the cache of the transport. Each transport keeps its own store, and the keys start with the transport, so two transports that share a store never share entries.
+
+The resolvers and the stores are static, like the [rate limit stores](./rate-limits#stores), so every application in the same process uses the store registered by the last plugin of each transport that started.

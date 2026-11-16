@@ -1,0 +1,109 @@
+---
+sidebar_position: 1
+---
+
+# Installation
+
+The MCP Plugin exposes the tools, resources and prompts of an AxiSpark.js application to AI clients, such as assistants, IDEs and agents, through the [Model Context Protocol](https://modelcontextprotocol.io) (MCP). Capabilities are declared in decorated classes, resolved through the dependency injection container, and run through the engine like HTTP routes and WebSocket events.
+
+## 1. Install the packages
+
+Install the MCP plugin and `class-validator`, which describes the inputs of the tools:
+
+```sh
+npm install @axisparkjs/mcp class-validator
+```
+
+## 2. Register and configure the plugin
+
+Pass the options factory to `app.use`. It provides defaults: the `http` transport, the `/mcp` path and port `3000`.
+
+```ts title="app.ts"
+import { AxiSparkFactory } from '@axisparkjs/core';
+import { McpPlugin, McpPluginOptionsFactory } from '@axisparkjs/mcp';
+
+export const app = AxiSparkFactory.create({
+    name: 'Users App',
+    basePath: __dirname
+});
+
+app.use(McpPlugin, McpPluginOptionsFactory.create());
+```
+
+The server name sent to the clients is the application name, and the version is read from the nearest `package.json`, starting at the `basePath` of the application. Set `name` and `version` to override them.
+
+## 3. Use the HTTP Plugin server (optional)
+
+By default, the HTTP transport starts its own server on the configured `port`. To serve the MCP endpoint on the server managed by the HTTP Plugin, register the HTTP Plugin and set `useHttpPluginServer` to `true`:
+
+```ts
+import { HttpPlugin } from '@axisparkjs/http';
+import { HttpPluginOptionsFactory } from '@axisparkjs/http-express';
+
+app.use(HttpPlugin, HttpPluginOptionsFactory.create({ port: 3000, basePath: '/api' }));
+app.use(McpPlugin, McpPluginOptionsFactory.create({
+    path: '/mcp',
+    useHttpPluginServer: true
+}));
+```
+
+The endpoint is served on the HTTP Plugin port and under its base path, so the example above serves MCP at `http://localhost:3000/api/mcp`. The MCP `port` option is ignored. The HTTP Plugin is an optional dependency of the MCP Plugin, but it must be registered when `useHttpPluginServer` is enabled. It works with the Express and Fastify adapters, and the other routes of the HTTP Plugin keep working.
+
+## 4. Use the stdio transport (optional)
+
+Clients such as desktop assistants and IDEs can launch the application as a subprocess and talk to it through its standard input and output. Select the `stdio` transport:
+
+```ts title="app.ts"
+import { AxiSparkFactory } from '@axisparkjs/core';
+import { LogLevel, SimpleFormatter, StreamTransport } from '@axisparkjs/logger';
+import { McpPlugin, McpPluginOptionsFactory } from '@axisparkjs/mcp';
+
+export const app = AxiSparkFactory.create({
+    name: 'Users App',
+    basePath: __dirname,
+    banner: false,
+    logTransports: [new StreamTransport({ stream: process.stderr, minLevel: LogLevel.Info, formatter: new SimpleFormatter() })]
+});
+
+app.use(McpPlugin, McpPluginOptionsFactory.create({ transport: 'stdio' }));
+```
+
+:::warning
+With the stdio transport, the standard output carries the protocol messages. Anything else written to it breaks the connection, so send the logs to `stderr`, as in the example. When `logTransports` is not set, the application uses a `ConsoleTransport`, which writes to the standard output. See [Writing logs to stderr](../getting-started/logging#writing-logs-to-stderr).
+:::
+
+The banner is written through the logger, so it only breaks the protocol when a transport writes to the standard output. Disabling it with `banner: false` is still recommended, because it is not useful for the clients and keeps the logs shorter.
+
+Other code that writes to the standard output also breaks the connection:
+
+- `console.log`, `console.info` and `console.debug` in tools, resources, prompts or services. Inject the `Logger` instead, so the entries go through the configured transports.
+- Libraries that print to the standard output. Check their options to disable that output or redirect it to `stderr`.
+
+To launch the stdio application, keep its own bootstrap file, such as `stdio.bootstrap.ts`, next to the other files. The scanner never imports the bootstrap files (`*.bootstrap.{js,ts}`), so it does not start the stdio application by accident. If several application files create applications at their top level, exclude them with the [`scanner` option](../getting-started/first-steps#files-loaded-by-the-scanner).
+
+## Configuration options
+
+`McpPluginOptionsFactory.create()` accepts these options:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `transport` | `'stdio' \| 'http'` | `'http'` | Transport used to talk to the clients. `http` is the Streamable HTTP transport. |
+| `path` | `string` | `'/mcp'` | Path of the HTTP endpoint. The HTTP Plugin base path is prepended when `useHttpPluginServer` is enabled. |
+| `port` | `number` | `3000` | Port of the standalone HTTP server. |
+| `useHttpPluginServer` | `boolean` | `false` | Whether to serve the endpoint on the HTTP Plugin server. |
+| `name` | `string` | Application name | Server name sent to the clients. |
+| `version` | `string` | `package.json` version | Server version sent to the clients. |
+| `instructions` | `string` | — | Instructions that describe how to use the server. Clients can add them to the context of the model. |
+| `allowedHosts` | `string[]` | — | Host names accepted in the `Host` header. Set it to protect a local server against DNS rebinding attacks. |
+| `allowedOrigins` | `string[]` | — | Host names accepted in the `Origin` header. |
+| `timeout` | `number` | — | Default timeout in milliseconds for every tool, resource and prompt. |
+
+## Try it with a client
+
+Any MCP client can connect to the application. For example, the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) lists the tools, resources and prompts with their schemas and lets you call them:
+
+```sh
+npx @modelcontextprotocol/inspector
+```
+
+Select the Streamable HTTP transport and the URL of the endpoint, such as `http://localhost:3000/mcp`. To declare the capabilities of the application, see [Tools, resources and prompts](./capabilities).
