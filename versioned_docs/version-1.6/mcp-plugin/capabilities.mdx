@@ -1,0 +1,135 @@
+---
+sidebar_position: 2
+---
+
+# Tools, resources and prompts
+
+Declare a group of MCP capabilities with `@McpServer()` and mark each method with `@McpTool()`, `@McpResource()` or `@McpPrompt()`. The plugin discovers the decorated classes during the scan, and no other registration is needed. The classes are resolved through the dependency injection container, so they can inject services in their constructor.
+
+```ts title="users-mcp.ts"
+import { Pipe, ValidateSchema } from '@axisparkjs/engine';
+import { McpArgs, McpParam, McpPrompt, McpResource, McpServer, McpTool } from '@axisparkjs/mcp';
+import { SearchUsersDto, WelcomeDto } from './users.dto';
+import { UserService } from './user.service';
+
+@McpServer({ prefix: 'users' })
+export class UsersMcp {
+    constructor(private readonly users: UserService) {}
+
+    @McpTool('search', { description: 'Search users by name', annotations: { readOnlyHint: true } })
+    search(@McpArgs() @Pipe(ValidateSchema()) args: SearchUsersDto) {
+        return this.users.search(args.query, args.limit);
+    }
+
+    @McpResource('users://{id}', { description: 'User profile', mimeType: 'application/json' })
+    profile(@McpParam('id') id: string) {
+        return this.users.findById(id);
+    }
+
+    @McpPrompt('welcome', { description: 'Write a welcome message for a new user' })
+    welcome(@McpArgs() args: WelcomeDto) {
+        return `Write a ${args.tone ?? 'friendly'} welcome message for ${args.name}.`;
+    }
+}
+```
+
+## Servers and prefixes
+
+`@McpServer()` marks a class as a group of capabilities. Its `prefix` option namespaces the names of the tools, resources and prompts of the class with a dot: the tool `search` of the example is published as `users.search`. Without a prefix, the names are published as they are. Resource URIs are never prefixed.
+
+Names must be unique in the application. Two tools or prompts with the same name, or two resources with the same URI, stop the registration of the plugin with an `McpDefinitionError`.
+
+## Tools
+
+`@McpTool(name?, options?)` exposes a method as a tool that the model can call. The name defaults to the method name, and the options can be passed as the only argument: `@McpTool({ description: '...' })`.
+
+| Option | Description |
+| --- | --- |
+| `description` | What the tool does. Clients and models use it to decide when to call the tool. |
+| `title` | A human-readable title. |
+| `annotations` | Hints about the behavior of the tool: `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. |
+| `inputSchema` | A JSON Schema that replaces the generated input schema. |
+
+### Input schemas
+
+MCP clients need a JSON Schema for the input of each tool. The plugin generates it from the `class-validator` decorators of the class declared as the type of the `@McpArgs()` parameter:
+
+```ts title="users.dto.ts"
+import { IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+
+export class SearchUsersDto {
+    @IsString()
+    @Length(1, 50)
+    query: string;
+
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(100)
+    limit?: number;
+}
+```
+
+The tool `users.search` is published with this input schema:
+
+```json
+{
+    "type": "object",
+    "properties": {
+        "query": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+    },
+    "required": ["query"]
+}
+```
+
+The generator describes the types (`@IsString()`, `@IsInt()`, `@IsNumber()`, `@IsBoolean()`, `@IsArray()`, `@IsObject()`), the formats (`@IsEmail()`, `@IsUrl()`, `@IsUUID()`, `@IsDate()`, `@IsDateString()`), the lengths, ranges, patterns and enumerations, the array constraints, and nested classes with `@ValidateNested()`. Every property is required unless it has `@IsOptional()` or `@ValidateIf()`. Decorators without an equivalent in JSON Schema are still checked at runtime by `ValidateSchema()`.
+
+When the method has no `@McpArgs()` parameter, or its type is not a class (an interface, a generic or a primitive), the tool is published with an open schema: `{ "type": "object" }`.
+
+:::tip
+The schema only describes the input to the clients. Add `@Pipe(ValidateSchema())` to the `@McpArgs()` parameter to validate the arguments and receive an instance of the class. Invalid arguments are returned to the model as a tool error, so it can fix them and call the tool again.
+:::
+
+## Resources
+
+`@McpResource(uri, options?)` exposes a method as a resource that the client can read. The URI can be fixed, such as `config://app`, or a [URI template](https://datatracker.ietf.org/doc/html/rfc6570), such as `users://{id}`. Fixed resources are listed with `resources/list`, and templates with `resources/templates/list`. Fixed URIs take precedence over templates when both match a URI.
+
+Receive the variables of a template with `@McpParam(name)`, or every variable with `@McpParam()`.
+
+| Option | Description |
+| --- | --- |
+| `name` | The name of the resource. Defaults to the method name. |
+| `title` | A human-readable title. |
+| `description` | A description of the resource. |
+| `mimeType` | The MIME type of the contents. It is also used for the returned values. |
+
+## Prompts
+
+`@McpPrompt(name?, options?)` exposes a method as a prompt template that the user can select in the client. Receive its arguments with `@McpArgs()`. The prompt arguments are generated from the properties of the class of that parameter, and the `arguments` option replaces them:
+
+```ts
+@McpPrompt('review', {
+    description: 'Review a pull request',
+    arguments: [{ name: 'url', description: 'The pull request URL', required: true }]
+})
+review(@McpArgs() args: { url: string }) {
+    return `Review the pull request at ${args.url}.`;
+}
+```
+
+Prompt arguments are always strings.
+
+## Parameters
+
+| Decorator | Value |
+| --- | --- |
+| `@McpArgs()` | The arguments of a tool or a prompt. |
+| `@McpParam(name?)` | A variable of the URI template of a resource, or every variable without a name. |
+| `@McpSession()` | The `McpSession`: the session id, the transport (`'stdio'` or `'http'`), the authentication information and the HTTP headers of the request. |
+| `@McpContext()` | The complete `McpContext`, with the `request`, the `session`, the `client` information and the `definition` of the capability. |
+| `@Signal()` | The `AbortSignal` of the execution, aborted when the request times out or the client cancels it. See [Timeouts](../engine-system/timeouts#stopping-the-work-of-a-handler). |
+
+The engine parameters, such as `@Context()`, also work, and pipes, guards, interceptors, filters and `@Timeout()` apply to MCP handlers as they do to HTTP routes. Steps with `transport: ExecutionTransport.Mcp` only run for MCP requests.
+
+To learn how the returned values are sent to the client, see [Results and errors](./results).

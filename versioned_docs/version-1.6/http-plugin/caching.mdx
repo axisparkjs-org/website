@@ -1,0 +1,114 @@
+---
+sidebar_position: 8
+---
+
+# Caching
+
+The HTTP plugin caches the results of the handlers decorated with `@Cache()`, with the [cache of the engine](../engine-system/cache). The cache is opt-in: the routes without `@Cache()` are never cached, so it needs no option to be enabled.
+
+```ts title="product.controller.ts"
+import { Cache, NoCache } from '@axisparkjs/engine';
+import { Controller, Get, Path } from '@axisparkjs/http';
+
+@Controller('products')
+@Cache({ ttl: 30_000 })
+export class ProductController {
+    @Get(':id')
+    find(@Path('id') id: string) {
+        return this.products.find(id);
+    }
+
+    @Get(':id/stock')
+    @NoCache()
+    stock(@Path('id') id: string) {
+        return this.stock.of(id);
+    }
+}
+```
+
+The first `GET /products/1` runs the handler, and the next equal requests within 30 seconds return the same body and status without running it. The guards, the middlewares and the before interceptors run on every request, also on cache hits.
+
+## Options
+
+```ts
+import { RedisStore } from '@axisparkjs/redis';
+
+HttpPluginOptionsFactory.create({
+    cacheOptions: {
+        ttl: 60_000,
+        store: RedisStore('MAIN')
+    }
+});
+```
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `cacheOptions.ttl` | The time to live of the results of the handlers whose `@Cache()` has no `ttl`, in milliseconds. | `60_000` |
+| `cacheOptions.store` | The provider of the store of the results, called when the plugin starts. | `MemoryStore()` |
+
+`MemoryStore()` keeps the results in the process, so each instance has its own cache. Use a shared provider, such as [`RedisStore`](../connections/redis#stores), to share them: a result cached by one instance is returned by the others. See [Stores](../getting-started/stores).
+
+## Which requests are cached
+
+`HttpCacheResolver` builds the key of the requests:
+
+- Only `GET` and `HEAD` requests are cached. The other methods always run the handler, even with a custom `key`.
+- The key is made of the method, the `Host` header, the path and the query string, with its parameters sorted, so `?a=1&b=2` and `?b=2&a=1` share an entry.
+- The requests with an `Authorization` or a `Cookie` header are **not cached by default**, so the response of one user is never returned to another one.
+- Only the handlers that finish without error and return a plain value are cached. The errors, `HttpResults.*` results, files, streams and redirects are not.
+
+## Caching per user
+
+A custom `key` replaces the method, host, path and query of the key, and caches the requests with `Authorization` or `Cookie` headers explicitly. Build it with everything that changes the response:
+
+```ts
+import { HttpContext } from '@axisparkjs/http';
+
+const byUser = (context: ExecutionContext) => {
+    const { request } = context as HttpContext;
+    const user = request.getHeader('authorization');
+    return typeof user === 'string' ? `${user}:${request.path}` : undefined;
+};
+
+@Get('me/recommendations')
+@Cache({ ttl: 60_000, key: byUser })
+recommendations() {}
+```
+
+Returning `undefined` does not cache the request.
+
+## Varying by headers
+
+`@CacheVary()` adds request headers to the key, so the requests with different values are cached separately. For example, one entry per language:
+
+```ts
+import { CacheVary } from '@axisparkjs/http';
+
+@Get()
+@Cache()
+@CacheVary('accept-language')
+list(@Header('accept-language') language?: string) {
+    return this.products.list(language);
+}
+```
+
+The header names are case-insensitive. `@CacheVary()` works on controllers and routes, and the headers of a route replace the headers of its controller. They are also added to a custom `key`.
+
+## Evicting entries
+
+Inject `CacheService` in the services that change the data:
+
+```ts
+await this.cache.evict(ProductController, 'find'); // Every entry of the route.
+await this.cache.evict(ProductController, 'find', key); // One entry, with the key of a custom `key` function.
+```
+
+See [keys and eviction](../engine-system/cache#keys-and-eviction).
+
+## Limitations
+
+- The headers and cookies set directly on `context.response` inside the handler are not replayed on cache hits.
+- When an entry expires under load, every concurrent request runs the handler until one of them stores the new result.
+- With a shared store, the results are serialized with JSON. See [serialization](../engine-system/cache#serialization).
+
+The [`caching-responses` sample](https://github.com/axisparkjs-org/axispark/tree/main/samples/caching-responses) shows every case, with the in-memory store and with Redis.

@@ -141,15 +141,15 @@ Transporters are responsible for sending log messages to their final destination
     <tbody>
         <tr>
             <td>`ConsoleTransport`</td>
-            <td>Sends log messages to the console with `console.log`, so they are written to the standard output (`stdout`).</td>
+            <td>Sends log messages to the standard output (`stdout`) through a buffered asynchronous stream, so logging does not block the requests. Set `buffered: false` to write each message with `console.log`.</td>
         </tr>
         <tr>
             <td>`DailyFileTransport`</td>
-            <td>Sends log messages to a specified file, creating a new file each day.</td>
+            <td>Sends log messages to a specified file, creating a new file each day. The file of the day is kept open, and the previous one is closed when the day changes.</td>
         </tr>
         <tr>
             <td>`FileTransport`</td>
-            <td>Sends log messages to a specified file.</td>
+            <td>Sends log messages to a specified file, which is kept open with a stream in append mode instead of being opened for every message. The messages are written in order, and the file is closed when the application is destroyed.</td>
         </tr>
         <tr>
             <td>`HttpTransport`</td>
@@ -165,7 +165,7 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
         <tr>
             <td>`RotatingFileTransport`</td>
-            <td>Sends log messages to a specified file, rotating the file when it reaches a certain size or age.</td>
+            <td>Sends log messages to a specified file, rotating the file when it reaches `maxSize` bytes and keeping `maxFiles` rotated files. The size is counted in memory, and the file is closed before it is rotated.</td>
         </tr>
         <tr>
             <td>`StreamTransport`</td>
@@ -177,6 +177,28 @@ Transporters are responsible for sending log messages to their final destination
         </tr>
     </tbody>
 </table>
+
+### Buffered transporters
+
+`console.log` is synchronous when the standard output is a file or a pipe, as in containers, so under load each line blocks the event loop. `ConsoleTransport` writes to a buffered stream instead (`sonic-boom`), shared by every console transporter of the process: the lines are written when 4 KiB are waiting or at the end of the current tick of the event loop, and the lines still waiting are written synchronously when the process exits.
+
+`app.destroy()` calls `logger.flush()` after its last message, which waits for the transporters that keep entries in memory. Call it yourself before exiting the process in other ways:
+
+```ts
+await logger.flush();
+```
+
+Because the logger writes to its own stream, its lines can be written after a `console.log` of your code that ran later. Set `buffered: false` when the order between both matters more than the performance:
+
+```ts
+new ConsoleTransport({ minLevel: LogLevel.Info, formatter: new SimpleFormatter(), buffered: false });
+```
+
+A custom transporter that keeps entries in memory overrides `flush()` of `LogTransport`, which does nothing by default.
+
+### Closing the files
+
+The file transporters keep their file open while the application runs. `logger.flush()`, also called by `app.destroy()`, waits for the pending messages and closes the files; the next message opens them again. When a file can not be written, for example because its folder does not exist, the call fails as described below and the next message tries to open the file again.
 
 ### Sending the HTTP logs in batches
 
@@ -248,6 +270,16 @@ AxiSparkFactory.create({
 ```
 
 > You can add multiple transporters to the `logTransports` array, allowing you to send log messages to multiple destinations simultaneously. Each transporter can have its own configuration, including the minimum logging level and formatter.
+
+The logger checks the lowest `minLevel` of its transporters before building an entry: a call below it, such as `debug()` with every transporter at `Info`, returns at once, without building the entry or calling the transporters. Use `logger.isLevelEnabled(LogLevel.Debug)` to skip the work of preparing a message that nobody would write:
+
+```ts
+if (this.logger.isLevelEnabled(LogLevel.Debug)) {
+    await this.logger.debug(`Cart contents: ${JSON.stringify(cart)}`);
+}
+```
+
+A custom transporter gets its minimum level from the `minLevel` of its options (the `minLevel` getter of `LogTransport`).
 
 ### Default transport
 

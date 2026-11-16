@@ -1,0 +1,121 @@
+# Class: RotatingFileTransport
+
+A log transport that outputs log entries to a file.
+
+## Extends
+
+- [`FileTransport`](FileTransport.md)
+
+## Constructors
+
+### Constructor
+
+> **new RotatingFileTransport**(`options`): `RotatingFileTransport`
+
+#### Parameters
+
+##### options
+
+[`RotatingFileTransportOptions`](../interfaces/RotatingFileTransportOptions.md)
+
+#### Returns
+
+`RotatingFileTransport`
+
+#### Overrides
+
+[`FileTransport`](FileTransport.md).[`constructor`](FileTransport.md#constructor)
+
+## Properties
+
+### config
+
+> `protected` `readonly` **config**: [`LogTransportOptions`](../interfaces/LogTransportOptions.md)
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`config`](FileTransport.md#config)
+
+***
+
+### options
+
+> `protected` `readonly` **options**: [`RotatingFileTransportOptions`](../interfaces/RotatingFileTransportOptions.md)
+
+#### Overrides
+
+[`FileTransport`](FileTransport.md).[`options`](FileTransport.md#options)
+
+## Accessors
+
+### errorOptions
+
+#### Get Signature
+
+> **get** **errorOptions**(): `Pick`\<[`LogTransportOptions`](../interfaces/LogTransportOptions.md), `"onError"` \| `"failOnError"`\>
+
+The options that decide how the failures of the transport are handled.
+
+##### Returns
+
+`Pick`\<[`LogTransportOptions`](../interfaces/LogTransportOptions.md), `"onError"` \| `"failOnError"`\>
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`errorOptions`](FileTransport.md#erroroptions)
+
+## Methods
+
+### beforeWrite()
+
+> `protected` **beforeWrite**(): `Promise`\<`void`\>
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Overrides
+
+[`FileTransport`](FileTransport.md).[`beforeWrite`](FileTransport.md#beforewrite)
+
+***
+
+### getFile()
+
+> `protected` **getFile**(`_entry`): `string`
+
+#### Parameters
+
+##### \_entry
+
+[`LogEntry`](../interfaces/LogEntry.md)
+
+#### Returns
+
+`string`
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`getFile`](FileTransport.md#getfile)
+
+***
+
+### write()
+
+> **write**(`entry`): `Promise`\<`void`\>
+
+Writes a log entry using the configured formatter and minimum level.
+
+#### Parameters
+
+##### entry
+
+[`LogEntry`](../interfaces/LogEntry.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`write`](FileTransport.md#write)
