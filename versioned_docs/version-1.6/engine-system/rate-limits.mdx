@@ -1,0 +1,100 @@
+---
+sidebar_position: 6
+---
+
+# Rate limits
+
+The engine applies rate limits with the same algorithm for every transport. The transport-neutral parts live in `@axisparkjs/engine`:
+
+- The `@RateLimit()` and `@NoRateLimit()` decorators, which declare the limits of a controller or handler.
+- `RateLimitGenerator`, which builds the `RateLimitDefinition` (`ttl` and `limit`) from the decorators and the defaults of the transport.
+- `RateLimitProcessor`, which counts the request in a `RateLimitStore` and returns the `RateLimitDecision` (`allowed` and `retryAfterMs`).
+
+The stores live in `@axisparkjs/store` with the [other stores](../getting-started/stores): `RateLimitStore`, `RateLimitPolicy`, `RateLimitDecision` and `InMemoryRateLimitStore`.
+
+The only part that depends on the transport is how the client is identified. Each transport registers a `RateLimitResolver` that returns that identifier, and a guard that rejects the requests beyond the limit:
+
+| Transport | Plugin option | Client | Resolver | Rejection |
+| --- | --- | --- | --- | --- |
+| HTTP | `rateLimit` | The IP address of the request. | `HttpRateLimitResolver` | `429 Too Many Requests` with a `Retry-After` header. See [HTTP rate limiting](../http-plugin/rate-limiting). |
+| WebSocket | `rateLimit` | The remote address of the connection, its id, or a function (`rateLimitOptions.by`). | `WsRateLimitResolver` | An acknowledgment with the status `429` and `retryAfterMs`. See [WebSocket rate limiting](../websocket-plugin/rate-limiting). |
+| MCP | — | Not supported yet. | — | — |
+
+## How a request is counted
+
+`RateLimitProcessor.process(definition, context)`:
+
+1. Returns `undefined` when there is no definition, or no resolver or no store is registered for `context.transport`.
+2. Gets the client identifier from the resolver of the transport. When it returns `undefined`, the request is counted in an `unknown` bucket shared by every client without an identifier.
+3. Builds the bucket key with the transport, the client identifier, `context.target.name` and `context.propertyKey`. The key identifies the handler, not the requested URL, so the path parameters and the query string do not create new buckets.
+4. Counts the request in the store with the sliding window of the definition and returns the decision.
+
+A `limit` of `0` or less denies every request. The in-memory store removes the expired buckets every 256 checks.
+
+## Adding rate limits to a custom transport
+
+A transport only needs a resolver that identifies the client, and a step that handles the decision. The examples use a custom `ExecutionTransport.Other` transport whose context has a `sessionId`:
+
+```ts title="session-rate-limit-resolver.ts"
+import { Injectable } from '@axisparkjs/di';
+import { ExecutionContext, RateLimitResolver } from '@axisparkjs/engine';
+
+@Injectable()
+export class SessionRateLimitResolver implements RateLimitResolver {
+    resolve(context: ExecutionContext): string | undefined {
+        return (context as ExecutionContext & { sessionId?: string }).sessionId;
+    }
+}
+```
+
+Register the resolver, and the default limits of the transport, when the plugin is registered. Then register the store when the plugin starts, with the provider of its options and `MemoryStore()` by default, as the HTTP plugin does:
+
+```ts
+// onRegister
+RateLimitGenerator.registerRateLimit(ExecutionTransport.Other, { ttl: 60_000, limit: 100 });
+RateLimitProcessor.registerRateLimit(ExecutionTransport.Other, await this.injector.get(SessionRateLimitResolver));
+
+// onStart
+const provider = this.options.rateLimitOptions?.store ?? MemoryStore();
+RateLimitProcessor.registerRateLimitStore(ExecutionTransport.Other, await provider('rate-limit', this.context));
+```
+
+Then generate the definition and process it in a guard of the transport, which decides how to reject the request:
+
+```ts title="session-rate-limit-guard.ts"
+@Guard({ transport: ExecutionTransport.Other, priority: StepPriority.Critical })
+export class SessionRateLimitGuard {
+    constructor(
+        private readonly rateLimitGenerator: RateLimitGenerator,
+        private readonly rateLimitProcessor: RateLimitProcessor
+    ) {}
+
+    @Check()
+    async checkRateLimit(@Context() context: ExecutionContext): Promise<void> {
+        const definition = this.rateLimitGenerator.generate(context);
+        const decision = await this.rateLimitProcessor.process(definition, context);
+        if (decision && !decision.allowed) throw new Error(`Too many messages. Retry in ${decision.retryAfterMs} ms.`);
+    }
+}
+```
+
+The HTTP and WebSocket transports work the same way: `HttpRateLimitResolver` returns `request.ip`, and `RateLimitGuard` sets the `Retry-After` header and returns `429 Too Many Requests`; `WsRateLimitResolver` returns the remote address of the connection, and `WsRateLimitGuard` throws a `WebSocketRateLimitExceededError`. Passing `undefined` to `RateLimitProcessor.registerRateLimit(transport)` removes the resolver and disables the limits of the transport.
+
+## Stores
+
+The buckets are kept by the `RateLimitStore` registered for each transport with `RateLimitProcessor.registerRateLimitStore(transport, store)`. The plugins register it when they start, from the `StoreProvider` of their options, so applications choose the store in the options instead of calling the processor:
+
+```ts
+import { RedisStore } from '@axisparkjs/redis';
+
+HttpPluginOptionsFactory.create({
+    rateLimit: true,
+    rateLimitOptions: { ttl: 60_000, limit: 100, store: RedisStore('MAIN') }
+});
+```
+
+`MemoryStore()` creates an `InMemoryRateLimitStore`, which keeps the buckets in the process and removes the expired ones every 256 checks. `RedisStore()` applies the same sliding window in Redis, so every instance connected to the same Redis shares the limits. See [Stores](../getting-started/stores#custom-stores) to write your own store.
+
+Each transport keeps its own store, so the HTTP and WebSocket plugins can use different stores, and a plugin never replaces the store of another one. When two transports share a store, their buckets never mix, because the keys start with the transport.
+
+The stores are static, like the resolvers of the other processors, so every application in the same process uses the store registered by the last plugin of each transport that started. Each start of a plugin registers a new store, so tests that create several applications start each one with empty in-memory buckets.

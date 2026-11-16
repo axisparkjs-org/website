@@ -1,0 +1,92 @@
+---
+sidebar_position: 4
+---
+
+# Acknowledgments and errors
+
+With the Socket.IO adapter, clients may attach an acknowledgment callback when emitting an event. A handler can respond by returning a value; the WebSocket result resolver passes that value to the acknowledgment callback.
+
+```ts
+@WebSocketEvent('message')
+sendMessage(@WsData() data: { text: string }) {
+    return { accepted: true, text: data.text };
+}
+```
+
+To control the acknowledgment directly, inject `@WsAck()`. The callback is optional because the client may emit without an acknowledgment:
+
+```ts
+@WebSocketEvent('message')
+sendMessage(
+    @WsData() data: { text: string },
+    @WsAck() acknowledge: ((response?: unknown) => void) | undefined
+) {
+    acknowledge?.({ accepted: true, text: data.text });
+}
+```
+
+Use `WebSocketResults` to create a success or error result explicitly. `WebSocketResults.Ok(value)` acknowledges with `value`. `WebSocketResults.Error(error)` acknowledges with an object containing `error`, `status`, and an optional `description`.
+
+```ts
+import { WebSocketError, WebSocketResults } from '@axisparkjs/websocket';
+
+@WebSocketEvent('message')
+sendMessage(@WsData() data: { text: string }) {
+    if (!data.text.trim()) {
+        return WebSocketResults.Error(new WebSocketError('Message cannot be empty', 400, {
+            description: 'Provide a non-empty text value.'
+        }));
+    }
+
+    return WebSocketResults.Ok({ accepted: true });
+}
+```
+
+If no acknowledgment callback was provided by the client, result processing has no callback to invoke. Returning `undefined` or `null` does not send a success acknowledgment.
+
+## Timeouts
+
+A WebSocket event can have a timeout, as an HTTP route. When the event takes longer than its time, the client receives an error through the acknowledgment with the status `408`:
+
+```json
+{ "error": "Request timed out after 100ms", "status": 408, "description": "Event 'slow'" }
+```
+
+Set a timeout per class or event with `@Timeout()` from `@axisparkjs/engine`. It works even when the default timeout of the plugin is disabled:
+
+```ts
+import { NoTimeout, Timeout } from '@axisparkjs/engine';
+import { WebSocket, WebSocketEvent } from '@axisparkjs/websocket';
+
+@WebSocket()
+export class ReportSockets {
+    @WebSocketEvent('report')
+    @Timeout(100) // 100 milliseconds
+    async generateReport() {...}
+
+    @WebSocketEvent('export')
+    @NoTimeout() // Never times out, even with a default timeout
+    async exportReports() {...}
+}
+```
+
+To give every event a default timeout, enable the `timeout` option of the plugin. `@Timeout()` overrides the default time, and `@NoTimeout()` disables it:
+
+```ts title="app.ts"
+app.use(
+    WebSocketPlugin,
+    WebSocketPluginOptionsFactory.create({
+        timeout: true,
+        timeoutOptions: {
+            time: 3000, // 5000 milliseconds by default
+            message: (time: number) => `Event timed out after ${time} ms`
+        }
+    })
+);
+```
+
+The error is a `WebSocketRequestTimeoutError`, a `WebSocketError` with the status `408`, so error filters can catch it as any other error.
+
+> The timeout only answers the client: the handler is not cancelled, it keeps running, and its result is discarded. When the client emits the event without an acknowledgment callback, the timeout error has nowhere to be sent.
+
+> `timeout` is `false` by default, so existing applications keep their events without a time limit. See [Timeouts](../engine-system/timeouts) for how the timeouts of a method, its class and the transport are resolved.

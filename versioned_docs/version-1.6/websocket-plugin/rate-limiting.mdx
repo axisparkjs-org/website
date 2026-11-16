@@ -1,0 +1,94 @@
+---
+sidebar_position: 5
+---
+
+# Rate limiting
+
+The WebSocket plugin can limit the events of each client with a sliding time window, as the [HTTP plugin](../http-plugin/rate-limiting) limits its requests. It is disabled by default. Enable it in the plugin options to apply the configured defaults to every event:
+
+```ts
+import { WebSocketPlugin } from '@axisparkjs/websocket';
+import { WebSocketPluginOptionsFactory } from '@axisparkjs/websocket-socketio';
+
+app.use(
+    WebSocketPlugin,
+    WebSocketPluginOptionsFactory.create({
+        rateLimit: true,
+        rateLimitOptions: {
+            ttl: 10_000,
+            limit: 20,
+            message: 'Too many messages. Please slow down.'
+        }
+    })
+);
+```
+
+`ttl` is the window duration in milliseconds, and `limit` is the maximum number of events from one client to one event handler during that window. If `rateLimitOptions` is omitted, the defaults are 60 seconds and 100 events. A message callback receives the milliseconds until the client can send the event again.
+
+## Overriding the limits
+
+Use `@RateLimit()` on a gateway or an event to override the defaults, and `@NoRateLimit()` to disable them. They are the same decorators as for HTTP controllers, from `@axisparkjs/engine`:
+
+```ts
+import { NoRateLimit, RateLimit } from '@axisparkjs/engine';
+import { WebSocket, WebSocketEvent, WsData } from '@axisparkjs/websocket';
+
+@WebSocket()
+export class ChatGateway {
+    @WebSocketEvent('chat:send')
+    @RateLimit({ ttl: 1_000, limit: 3 })
+    send(@WsData() message: ChatMessage) {...}
+
+    @WebSocketEvent('chat:typing')
+    @NoRateLimit()
+    typing() {...}
+}
+```
+
+The limits of an event take precedence over the limits of its gateway, and both take precedence over the defaults of the plugin. Partial options use the defaults for the values they omit.
+
+## Rejected events
+
+When a client exceeds the limit, the handler is not invoked, and the client receives a `WebSocketRateLimitExceededError` through the [acknowledgment](./responses) with the status `429` and the milliseconds until it can send the event again:
+
+```json
+{ "error": "Too many requests. Please try again later.", "status": 429, "retryAfterMs": 750 }
+```
+
+When the client emits the event without an acknowledgment callback, the event is rejected without a response. The `connection` event has no message and is never limited.
+
+## Identifying the clients
+
+The `by` option of `rateLimitOptions` decides how the clients are identified:
+
+| Value | Client | Notes |
+| --- | --- | --- |
+| `'address'` (default) | The remote address of the connection, or its id when the adapter does not know the address. | Reconnecting does not reset the limits. Every connection behind the same NAT shares the limits, as HTTP clients behind the same IP do. |
+| `'connection'` | The id of the connection. | The id changes on every reconnection, so a client can reset its limits by reconnecting. |
+| A function | The value it returns, from the `WebSocketContext`. | For example, to count the events per authenticated user. |
+
+```ts
+WebSocketPluginOptionsFactory.create({
+    rateLimit: true,
+    rateLimitOptions: { by: (context) => context.connection.id /* or the authenticated user */ }
+});
+```
+
+The address is `connection.remoteAddress`. Behind a reverse proxy or a load balancer, set the `trustProxy` option of the plugin so the address is resolved from the `X-Forwarded-For` header of the handshake. It accepts the same values as the [`trustProxy` option of the HTTP plugin](../http-plugin/installation), and with `useHttpPluginServer` it defaults to the value of the HTTP plugin.
+
+## Stores
+
+The events are counted by the store of `rateLimitOptions.store`, created when the plugin starts. It defaults to `MemoryStore()`, which keeps the counters in the process. Use a shared provider, such as `RedisStore()`, so every instance of the application shares the limits:
+
+```ts
+import { RedisStore } from '@axisparkjs/redis';
+
+WebSocketPluginOptionsFactory.create({
+    rateLimit: true,
+    rateLimitOptions: { ttl: 10_000, limit: 20, store: RedisStore('MAIN') }
+});
+```
+
+Each transport keeps its own store, so the HTTP and WebSocket plugins can use different stores. When they share a store, their counters never mix, because the keys start with the transport. See [Stores](../getting-started/stores).
+
+> The rate limits count events, not connections. A client can still open many connections; limiting the handshakes needs a middleware of the adapter.
