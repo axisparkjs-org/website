@@ -93,7 +93,7 @@ HttpPluginOptionsFactory.create({
 });
 ```
 
-`MemoryStore()` creates an `InMemoryRateLimitStore`, which keeps the buckets in the process and removes the expired ones every 256 checks. `RedisStore()` applies the same sliding window in Redis, so every instance connected to the same Redis shares the limits. See [Stores](../getting-started/stores#custom-stores) to write your own store.
+`MemoryStore()` creates an `InMemoryRateLimitStore`, which keeps the buckets in the process and removes the expired ones every 256 checks. It uses a **sliding window counter**: each bucket counts the requests of the current fixed window of `ttl` milliseconds and of the previous one, and estimates the requests of the sliding window as `previous × (1 − elapsed / ttl) + current`. It takes the same time and memory per client and handler whatever the `limit`, but it is an approximation: it takes the requests of the previous window as spread evenly over it, so a client that used its whole limit at the end of a window waits a bit longer than with an exact window, and the `Retry-After` time is the time until the estimate leaves room for one more request. `RedisStore()` applies an exact sliding window in Redis (one entry per request), so every instance connected to the same Redis shares the limits. See [Stores](../getting-started/stores#custom-stores) to write your own store.
 
 Each transport keeps its own store, so the HTTP and WebSocket plugins can use different stores, and a plugin never replaces the store of another one. When two transports share a store, their buckets never mix, because the keys start with the transport.
 
