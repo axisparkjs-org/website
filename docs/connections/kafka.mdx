@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Kafka
 
-The Kafka plugin creates named [KafkaJS](https://kafka.js.org/) clients and manages a producer and consumer for each connection. It passes each connection's Kafka configuration to KafkaJS and connects configured producers and consumers during plugin registration. See the [KafkaJS documentation](https://kafka.js.org/docs/getting-started) for Kafka concepts and the full client API.
+The Kafka plugin creates named Kafka clients and manages a producer and consumer for each connection. It is built on [`@confluentinc/kafka-javascript`](https://github.com/confluentinc/confluent-kafka-javascript), the client maintained by Confluent on top of [librdkafka](https://github.com/confluentinc/librdkafka), through its KafkaJS-compatible API. It passes each connection's configuration to the client and connects configured producers and consumers during plugin registration. See the [client documentation](https://github.com/confluentinc/confluent-kafka-javascript/blob/master/INTRODUCTION.md) for the full API, and the [KafkaJS documentation](https://kafka.js.org/docs/getting-started) for Kafka concepts.
 
 ## Install
 
@@ -14,9 +14,11 @@ Install the Kafka plugin in your project:
 npm install @axisparkjs/kafka
 ```
 
+`@confluentinc/kafka-javascript` is a native module. npm downloads a pre-built binary for Linux (glibc and musl, x64 and arm64), macOS (arm64) and Windows (x64) on the Node.js versions listed in its [requirements](https://github.com/confluentinc/confluent-kafka-javascript#requirements). On other platforms or Node.js versions, it is compiled from source during the installation, which needs Python, `make` and a C/C++ compiler.
+
 ## Configure connections
 
-Register `KafkaPlugin` with options created by `KafkaPluginOptionsFactory`. Each connection needs a unique `name` and a KafkaJS `config`, including at least one broker:
+Register `KafkaPlugin` with options created by `KafkaPluginOptionsFactory`. Each connection needs a unique `name` and a `config`, including at least one broker:
 
 ```ts title="app.ts"
 import { AxiSparkFactory } from '@axisparkjs/core';
@@ -58,7 +60,27 @@ app.use(
 );
 ```
 
-`config` is passed to the KafkaJS `Kafka` constructor. `producerConfig` and `consumerConfig` are passed to `kafka.producer()` and `kafka.consumer()`, respectively. The plugin supplies a default consumer group ID of `<connection-name-lowercase>-group`; setting `consumerConfig.groupId` overrides it. See KafkaJS [client configuration](https://kafka.js.org/docs/configuration), [producer](https://kafka.js.org/docs/producing), and [consumer](https://kafka.js.org/docs/consuming) docs for available options and APIs.
+`config` uses the KafkaJS configuration format (`brokers`, `clientId`, `ssl`, `sasl`, `connectionTimeout`, `authenticationTimeout`, `requestTimeout`, `retry`, `logLevel` and `logger`) and is passed to the client in its `kafkaJS` block. `producerConfig` and `consumerConfig` are passed, also in their `kafkaJS` block, to `kafka.producer()` and `kafka.consumer()`, respectively. The plugin supplies a default consumer group ID of `<connection-name-lowercase>-group`; setting `consumerConfig.groupId` overrides it.
+
+Some options are set when the client is created instead of on each call:
+
+- `acks`, `compression` and `timeout` of the producer go in `producerConfig`, not in `send()`.
+- `fromBeginning`, `autoCommit` and `autoCommitInterval` of the consumer go in `consumerConfig`, not in `subscribe()` or `run()`.
+
+Use `librdkafkaConfig` to pass [librdkafka properties](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md) that have no KafkaJS equivalent. They are passed next to the `kafkaJS` block, so do not repeat a property that `config` already sets:
+
+```ts
+{
+    name: 'ORDERS',
+    config: {
+        clientId: 'orders-service',
+        brokers: ['localhost:9092']
+    },
+    librdkafkaConfig: {
+        'client.rack': 'eu-west-1a'
+    }
+}
+```
 
 By default, the plugin creates and connects both a producer and consumer for every connection during registration. Set `autoInitialize: false` to create them lazily when first injected. To initialize only one client automatically, configure the flags separately:
 
@@ -76,16 +98,15 @@ By default, the plugin creates and connects both a producer and consumer for eve
 }
 ```
 
-Connection names must be unique. The manager connects initialized clients during plugin registration and disconnects them when the plugin stops. Initialization errors are logged; the failed producer or consumer is not registered.
+Connection names must be unique. The manager connects initialized clients during plugin registration and disconnects them when the plugin stops. Initialization errors are logged; the failed producer or consumer is not registered. A connection to an unreachable broker fails after the connection setup timeout (`connectionTimeout` + `authenticationTimeout`), once per attempt of `retry.retries`, so it delays the start of the application.
 
 ## Inject a producer or consumer
 
-Use `@InjectKafkaProducer(name)` or `@InjectKafkaConsumer(name)` to inject the corresponding KafkaJS client for a named connection:
+Use `@InjectKafkaProducer(name)` or `@InjectKafkaConsumer(name)` to inject the producer or the consumer of a named connection. The `Kafka`, `Producer`, `Consumer` and `Admin` types are exported by `@axisparkjs/kafka`:
 
 ```ts
 import { Injectable } from '@axisparkjs/di';
-import { InjectKafkaProducer } from '@axisparkjs/kafka';
-import type { Producer } from 'kafkajs';
+import { InjectKafkaProducer, Producer } from '@axisparkjs/kafka';
 
 @Injectable()
 export class OrderPublisher {
@@ -107,8 +128,7 @@ A consumer is connected by the plugin but still needs a subscription and a `run`
 
 ```ts
 import { Injectable } from '@axisparkjs/di';
-import { InjectKafkaConsumer } from '@axisparkjs/kafka';
-import type { Consumer } from 'kafkajs';
+import { InjectKafkaConsumer, Consumer } from '@axisparkjs/kafka';
 
 @Injectable()
 export class OrderListener {
@@ -132,11 +152,10 @@ With `autoInitialize: false`, the plugin creates and connects the requested clie
 
 ## Inject a Kafka client
 
-Use `@InjectKafkaConnection(name)` when you need the underlying KafkaJS `Kafka` client—for example, to create an additional producer that you manage yourself:
+Use `@InjectKafkaConnection(name)` when you need the underlying `Kafka` client—for example, to create an additional producer that you manage yourself:
 
 ```ts
-import { InjectKafkaConnection } from '@axisparkjs/kafka';
-import type { Kafka } from 'kafkajs';
+import { InjectKafkaConnection, Kafka } from '@axisparkjs/kafka';
 
 export class AdminService {
     constructor(
@@ -145,12 +164,12 @@ export class AdminService {
     ) {}
 
     createProducer() {
-        return this.kafka.producer();
+        return this.kafka.producer({ kafkaJS: { acks: 1 } });
     }
 }
 ```
 
-The plugin only manages the producer and consumer it creates for each connection. If you create additional KafkaJS clients yourself, connect and disconnect them in your service. The corresponding injection tokens are `KAFKA_CONNECTION_<name>`, `KAFKA_PRODUCER_<name>`, and `KAFKA_CONSUMER_<name>`, returned by `kafkaConnectionToken(name)`, `kafkaProducerToken(name)` and `kafkaConsumerToken(name)`, which always return the same token instance for the same name. The decorators are the recommended way to resolve them.
+The plugin only manages the producer and consumer it creates for each connection. If you create additional producers, consumers or admin clients yourself, connect and disconnect them in your service. The corresponding injection tokens are `KAFKA_CONNECTION_<name>`, `KAFKA_PRODUCER_<name>`, and `KAFKA_CONSUMER_<name>`, returned by `kafkaConnectionToken(name)`, `kafkaProducerToken(name)` and `kafkaConsumerToken(name)`, which always return the same token instance for the same name. The decorators are the recommended way to resolve them.
 
 ## Use the connection manager
 
@@ -177,4 +196,21 @@ The `getConnection`, `getProducer`, and `getConsumer` methods return `undefined`
 
 ## Health checks
 
-The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `kafka:<name>` for each configured connection. It connects an admin client, without retries, and describes the cluster. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.
+The plugin registers a [health check](../getting-started/health-checks#built-in-checks) named `kafka:<name>` for each configured connection. It connects an admin client, without retries, and requests the cluster ID, which is reported in its details. If the check fails, the application is reported as `Unhealthy`. Set `healthChecks: false` in the plugin options to disable these checks.
+
+## Migrating from KafkaJS
+
+Before this version, the plugin was built on [`kafkajs`](https://github.com/tulios/kafkajs), which is no longer maintained. The plugin options, the decorators and `KafkaConnectionManager` are the same, so an application that only configures the plugin needs no changes. Code that uses the injected clients may need these changes:
+
+| Before | Now |
+| --- | --- |
+| `import type { Producer } from 'kafkajs'` | `import { Producer } from '@axisparkjs/kafka'` (also `Kafka`, `Consumer`, `Admin`, `KafkaConfig`, `ProducerConfig` and `ConsumerConfig`). |
+| `producer.send({ topic, acks, compression, timeout, messages })` | `acks`, `compression` and `timeout` in `producerConfig`. |
+| `consumer.subscribe({ topic, fromBeginning: true })` | `fromBeginning: true` in `consumerConfig`. |
+| `consumer.run({ autoCommit, autoCommitInterval, eachMessage })` | `autoCommit` and `autoCommitInterval` in `consumerConfig`. |
+| `kafka.producer(config)` on an injected client | `kafka.producer({ kafkaJS: config })`, and the same for `consumer()` and `admin()`. |
+| Errors checked by `error.name` or `error.type` | Check `error.code`. |
+| `eachBatch` with several messages per batch | Each batch contains one message. |
+| `admin.describeCluster()` in the health check details (`brokers`, `controller`) | `admin.clusterId()`: the details contain the `clusterId`. |
+
+The client reports the options that it does not support with an error that explains the change. See the [migration guide](https://github.com/confluentinc/confluent-kafka-javascript/blob/master/MIGRATION.md) of `@confluentinc/kafka-javascript` for the complete list of differences.
