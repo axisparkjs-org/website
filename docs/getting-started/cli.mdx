@@ -55,6 +55,23 @@ The following command creates an HTTP project in the `my-app` directory and inst
 axispark create my-app --template http --install
 ```
 
+## manifest
+
+`axispark manifest` writes the module manifest of a compiled application: a JSON file with the files that the scanner imports, so the application does not search the file system when it starts. It makes the cold starts faster, especially in containers and serverless platforms. Run it after compiling, in the folder that is the `basePath` of the application:
+
+```bash
+tsc && axispark manifest dist
+```
+
+| Argument / Option | Description |
+| --- | --- |
+| `[dir]` | Base path of the compiled application. Defaults to the current folder. |
+| `--include <patterns...>` | The `scanner.include` patterns of the application, if it sets them. |
+| `--exclude <patterns...>` | The `scanner.exclude` patterns of the application, if it sets them. |
+| `-o, --output <file>` | Manifest file, relative to the base path, as the `scanner.manifest` option. Defaults to `axispark.manifest.json`. |
+
+The command uses the `@axisparkjs/core` installed in the project, so the files are selected with the same rules as the scanner. Generate the manifest again in every build: a file that is added after the manifest is not loaded, and a file of the manifest that no longer exists makes the start fail.
+
 ## Templates
 
 Templates are downloaded from the `templates/` folder of the AxiSpark.js repository, so the command needs network access.
