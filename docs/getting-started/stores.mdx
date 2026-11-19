@@ -116,6 +116,16 @@ interface CacheStore {
 }
 ```
 
+The in-memory cache store keeps at most 10 000 values: when a new value exceeds the limit, the least recently used value (read or written) is removed, so many different keys can not exhaust the memory of the process. Change the limit with the options of `MemoryStore()`:
+
+```ts title="app.ts"
+import { MemoryStore } from '@axisparkjs/store';
+
+app.use(HttpPlugin, HttpPluginOptionsFactory.create({ cacheOptions: { store: MemoryStore({ cache: { maxEntries: 50_000 } }) } }));
+```
+
+`maxEntries: Infinity` keeps every value until it expires, as before this limit existed.
+
 See [Cache](../engine-system/cache#keys-and-eviction) for how the cached results of the handlers are stored.
 
 ## Using stores in your own plugins
