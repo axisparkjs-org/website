@@ -1,0 +1,47 @@
+---
+sidebar_position: 2
+---
+
+# Signals
+
+The names and the attributes follow the [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/) where they exist. The durations are in seconds.
+
+| Signal | Name | Attributes |
+| --- | --- | --- |
+| Span | `<METHOD> <route>` (HTTP), `<event>` (WebSocket), `<capability> <name>` (MCP), `Class.method` (others) | `axispark.transport`, `axispark.handler` (`Class.method`), `http.request.method`, `http.route`, `url.path`, `http.response.status_code`, `axispark.websocket.event`, `axispark.mcp.capability`, `axispark.mcp.name`, `error.type` |
+| Histogram | `http.server.request.duration` | `http.request.method`, `http.route`, `http.response.status_code`, `error.type` |
+| Histogram | `axispark.execution.duration` | `axispark.transport`, `axispark.handler`, `outcome` (`success`, `error`), `error.type` |
+| Counter | `axispark.rate_limit.rejections` | `axispark.transport`, `axispark.handler` |
+| Span | `job <name>` | `axispark.job.name`, `axispark.job.type`, `axispark.job.scheduled_at`, `outcome`, `error.type` |
+| Histogram | `axispark.job.duration` | `axispark.job.name`, `axispark.job.type`, `outcome` (`executed`, `skipped`, `failed`), `error.type` |
+| Counter | `axispark.job.executions` | `axispark.job.name`, `outcome` |
+| Histogram | `axispark.store.operation.duration` | `axispark.store.kind`, `axispark.store.operation`, `error.type` |
+| Gauge | `axispark.health.status` | `axispark.health.check`, value `1` (up) or `0` (down) |
+
+## Cardinality
+
+The attributes of the metrics never contain values chosen by the clients:
+
+- The HTTP routes are reported with their **template**, such as `/api/products/:id`, never with the requested path. The path is only an attribute of the span (`url.path`).
+- The WebSocket events use the name of the registered event, and the events registered with a regular expression use its pattern, such as `/^room:.*/`.
+- The MCP requests use the name of the tool, resource or prompt.
+
+## HTTP requests
+
+The HTTP spans are `SERVER` spans. Their status code is read from the response after it is sent, and the rejected requests are measured too: a request rejected by the rate limit has the status `429`, and the span has a `rate_limit.rejected` event with the `limit`, the `ttl` and the `retry_after_ms`.
+
+## Scheduled jobs
+
+The executions skipped by the [exclusive jobs](../schedule-plugin/exclusive-jobs), because another instance holds their lock, are recorded with `outcome="skipped"`. A dashboard of `axispark.job.executions` by instance shows which instance ran each occurrence:
+
+```promql
+sum by (instance, outcome) (increase(axispark_job_executions_total{axispark_job_name="nightlyReport"}[1h]))
+```
+
+## Stores
+
+`axispark.store.operation.duration` measures the operations of the stores used by the framework: `consume` of the rate limits and `acquire` of the locks of the exclusive jobs, with the `error.type` of the operations that fail, for example when Redis is down. See [Stores](../getting-started/stores).
+
+## Health checks
+
+The `axispark.health.status` gauge reports the application, its plugins and its [health checks](../getting-started/health-checks). The checks run every time the metrics are collected, for example on each export of a periodic reader or each scrape of Prometheus. Disable it with `healthMetrics: false` when the checks are expensive.

@@ -188,6 +188,8 @@ export function DatabaseStore(): StoreProvider<'rate-limit' | 'cache'> {
 
 The provider has one signature per kind, so the implementation is cast to `StoreProvider`.
 
+The plugins wrap the stores they create with `instrumentStore(kind, store)`, so the [Telemetry Plugin](../telemetry/signals#stores) measures the duration of their operations.
+
 ## Custom kinds of store
 
 A package can add its own kind with declaration merging on `StoreTypes`, and then accept a `StoreProvider` of that kind in its options:
