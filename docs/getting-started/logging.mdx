@@ -45,6 +45,16 @@ The logging system in AxiSpark.js supports the following levels, ordered from lo
     </tbody>
 </table>
 
+## Logging without waiting
+
+The level methods of the logger return a promise that resolves when every transporter has written the entry, so `await logger.info(...)` adds the latency of the transporters (a file, an HTTP endpoint) to your code. Use `logger.nonBlocking` in the hot paths, such as middlewares or interceptors that run on every request:
+
+```ts
+this.logger.nonBlocking.info(`Order ${order.id} created`, { total: order.total });
+```
+
+`nonBlocking` has the same level methods, but they return nothing and never reject: the entry is written as usual, and the failures of the transporters are reported as usual (with `onError`, or on `process.stderr`), even for the transporters with `failOnError`. Keep `await` on the logger when the code must wait for the entry, or must stop when an audit transporter fails. The framework uses `nonBlocking` for the logs of every request: the HTTP request, response and error logs, the errors of the cache stores, the errors while sending a response, the unexpected errors of the MCP server and the logs of the scheduled jobs.
+
 ## Structured metadata
 
 Every level method accepts an optional `metadata` object with structured data about the entry. `error` and `fatal` receive it after the error, so the current calls keep working:
