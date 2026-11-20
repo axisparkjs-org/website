@@ -151,6 +151,19 @@ Optional structured data of the entry.
 
 ***
 
+### flush()
+
+> **flush**(): `Promise`\<`void`\>
+
+Writes the entries kept in memory by the transports (buffered or batched transports) and waits for them. A failing transport does not
+stop the others, and its failure is ignored, so it never breaks the shutdown of the application.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### info()
 
 > **info**(`message`, `metadata?`): `Promise`\<`void`\>
@@ -174,6 +187,27 @@ Optional structured data of the entry, such as `{ method: 'GET', status: 200 }`.
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+### isLevelEnabled()
+
+> **isLevelEnabled**(`level`): `boolean`
+
+Whether an entry of the level would be written by at least one transport. The level methods return at once, without building the
+entry, when it is `false`, so the `debug` and `trace` calls cost almost nothing when no transport writes them.
+
+#### Parameters
+
+##### level
+
+[`LogLevel`](../enumerations/LogLevel.md)
+
+The level to check.
+
+#### Returns
+
+`boolean`
 
 ***
 

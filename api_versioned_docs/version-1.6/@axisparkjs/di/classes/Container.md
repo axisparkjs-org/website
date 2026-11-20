@@ -80,6 +80,29 @@ Initializes the container by scanning for classes decorated with `@Injectable` a
 
 ***
 
+### isSingleton()
+
+> **isSingleton**(`token`): `boolean`
+
+Checks whether a token always resolves to the same instance: a value provider, or a class or factory provider with the singleton scope,
+also through `useExisting` aliases. The engine uses it to keep the instances that it can reuse between executions.
+
+#### Parameters
+
+##### token
+
+[`Token`](../type-aliases/Token.md)
+
+The token to check.
+
+#### Returns
+
+`boolean`
+
+`true` when the token is bound to a singleton, `false` when it is scoped, transient or not bound.
+
+***
+
 ### resolve()
 
 > **resolve**\<`T`\>(`token`, `scopedContainer?`): `Promise`\<`T`\>
@@ -169,6 +192,37 @@ The resolution chain of the classes that depend on the token.
 `Promise`\<`T`\>
 
 A promise that resolves to an instance of the class or the result of the factory function associated with the provided token.
+
+***
+
+### tryResolve()
+
+> **tryResolve**\<`T`\>(`token`): `T` \| `undefined`
+
+Returns the instance of a token synchronously when it is already available: a value provider, or a singleton that is already created,
+also through `useExisting` aliases. It never creates instances, so it can be used in hot paths before falling back to `resolve()`.
+
+#### Type Parameters
+
+##### T
+
+`T`
+
+The type of the instance.
+
+#### Parameters
+
+##### token
+
+[`Token`](../type-aliases/Token.md)\<`T`\>
+
+The token of the instance.
+
+#### Returns
+
+`T` \| `undefined`
+
+The instance, or `undefined` when the token is not bound, is scoped or transient, or is a singleton that is not created yet.
 
 ***
 

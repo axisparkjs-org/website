@@ -64,13 +64,16 @@ Executes the HTTP engine with the provided context.
 
 `Pick`\<[`HttpContext`](../interfaces/HttpContext.md), `"request"` \| `"response"` \| `"session"`\>
 
-The HTTP context for execution.
+The HTTP context for execution, created by the adapter for this request. It is completed in place with the rest of
+the properties of the `HttpContext` instead of being copied.
 
 ##### routes
 
 [`RouteDefinition`](RouteDefinition.md)[]
 
 The routes to map which will be executed.
+When the group has a single route that accepts every host (`*`) and has no versions (versioning disabled), the host and version
+matching is skipped and `context.host` and `context.version` are `undefined`.
 The errors that happen after the handler and the filters, while the response is sent (such as a stream that fails), are logged with the route instead of being thrown to the adapter. When the response has not started yet, it is answered with `500`.
 
 #### Returns

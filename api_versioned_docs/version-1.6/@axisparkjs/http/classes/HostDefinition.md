@@ -24,6 +24,14 @@ Represents the host restriction for an HTTP request and the host received from t
 
 > **host**: `string` \| `undefined`
 
+***
+
+### hostLabels
+
+> **hostLabels**: `string`[] \| `undefined`
+
+The labels of the normalized host of the request, split once when the host is set.
+
 ## Methods
 
 ### isHostAccepted()

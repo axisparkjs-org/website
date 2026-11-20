@@ -1,7 +1,7 @@
 # Class: ValidateSchemaPipeStep
 
-+ * An interface representing an executable object. It defines an `execute` method that can be called to perform some action or operation. The `execute` method can accept any number of arguments of unknown types and can return any type of value.
-+
+A pipe-step that validates a parameter against the class declared as its type, with the `class-validator` decorators of the class. The
+class is read from the `design:paramtypes` metadata once per handler and parameter, and kept for the next validations.
 
 ## Implements
 

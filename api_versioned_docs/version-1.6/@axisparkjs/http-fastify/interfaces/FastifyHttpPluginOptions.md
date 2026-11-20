@@ -331,6 +331,23 @@ Options for configuring the session middleware.
 
 ***
 
+### staticFiles?
+
+> `optional` **staticFiles?**: `boolean`
+
+Whether to serve the static files of `staticFilesOptions.root` (`<basePath>/public` by default). When it is not set, they are
+served only when the folder exists, so API-only applications do not register a static route. `false` never serves them.
+
+***
+
+### staticFilesOptions?
+
+> `optional` **staticFilesOptions?**: [`FastifyStaticFilesOptions`](FastifyStaticFilesOptions.md)
+
+The options of the static files.
+
+***
+
 ### timeout
 
 > **timeout**: `boolean`

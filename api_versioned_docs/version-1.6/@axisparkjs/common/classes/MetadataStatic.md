@@ -12,6 +12,21 @@ Static class for managing metadata using the Reflect Metadata API. It provides m
 
 `MetadataStatic`
 
+## Accessors
+
+### version
+
+#### Get Signature
+
+> **get** **version**(): `number`
+
+A counter that changes every time metadata is defined on a class (without property key). Indexes of classes by metadata, such as the
+one of the `ClassRegistry`, compare it to know when they must be built again.
+
+##### Returns
+
+`number`
+
 ## Methods
 
 ### define()

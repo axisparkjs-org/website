@@ -57,6 +57,35 @@ An array of `ParameterDefinition` instances representing the resolved parameters
 
 ***
 
+### resolve()
+
+> **resolve**(`executionContext`, `definition`): [`ParameterDefinition`](ParameterDefinition.md)
+
+Resolves the value of a parameter generated without values (`resolving` set to `false`) for one execution. The definition is copied,
+so the definitions generated once per handler can be reused by every execution.
+
+#### Parameters
+
+##### executionContext
+
+[`ExecutionContext`](../interfaces/ExecutionContext.md)
+
+The execution context of the invocation.
+
+##### definition
+
+[`ParameterDefinition`](ParameterDefinition.md)
+
+The definition of the parameter, without value.
+
+#### Returns
+
+[`ParameterDefinition`](ParameterDefinition.md)
+
+A copy of the definition with the resolved value.
+
+***
+
 ### registerParameter()
 
 > `static` **registerParameter**(`parameter`, `resolver`): `void`

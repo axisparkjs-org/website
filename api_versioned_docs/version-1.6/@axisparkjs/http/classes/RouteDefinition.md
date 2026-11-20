@@ -62,9 +62,25 @@ The declared routes served by this definition. A grouped dispatch route lists ev
 
 ***
 
+### hostPatterns
+
+> `readonly` **hostPatterns**: readonly [`HostPattern`](HostPattern.md)[]
+
+The host patterns of the route, compiled once when the route is registered.
+
+***
+
 ### hosts
 
 > `readonly` **hosts**: `string`[]
+
+***
+
+### hostSpecificity
+
+> `readonly` **hostSpecificity**: `number`
+
+The highest specificity of the host patterns of the route, or `0` when it has none.
 
 ***
 

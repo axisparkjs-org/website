@@ -18,6 +18,7 @@
 - [CacheService](classes/CacheService.md)
 - [CatchStepDefinition](classes/CatchStepDefinition.md)
 - [CheckStepDefinition](classes/CheckStepDefinition.md)
+- [ClassIdentifierStatic](classes/ClassIdentifierStatic.md)
 - [ClientDisconnectedError](classes/ClientDisconnectedError.md)
 - [ContextResolver](classes/ContextResolver.md)
 - [DefaultPipeStep](classes/DefaultPipeStep.md)
@@ -124,6 +125,7 @@
 
 ## Variables
 
+- [ClassIdentifier](variables/ClassIdentifier.md)
 - [ContextName](variables/ContextName.md)
 - [FilteredErrorName](variables/FilteredErrorName.md)
 - [PipeStepSkip](variables/PipeStepSkip.md)

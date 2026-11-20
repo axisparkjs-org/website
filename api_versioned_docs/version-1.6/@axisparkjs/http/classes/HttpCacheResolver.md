@@ -7,6 +7,8 @@ The requests with an `Authorization` or `Cookie` header are not cached, so the r
 A custom `key` in `@Cache()`, such as `(ctx) => ctx.session.userId`, replaces the method, host, path and query of the key, and enables
 the cache of these requests explicitly.
 
+The headers of `@CacheVary()` are read from the metadata once per handler and kept, so the cached requests do not read metadata.
+
 ## Implements
 
 - [`CacheResolver`](../../engine/interfaces/CacheResolver.md)

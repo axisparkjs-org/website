@@ -25,6 +25,7 @@
 
 ## Interfaces
 
+- [ConsoleTransportOptions](interfaces/ConsoleTransportOptions.md)
 - [FileTransportOptions](interfaces/FileTransportOptions.md)
 - [HttpTransportOptions](interfaces/HttpTransportOptions.md)
 - [LogData](interfaces/LogData.md)

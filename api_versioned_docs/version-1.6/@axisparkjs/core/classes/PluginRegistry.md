@@ -1,6 +1,9 @@
 # Class: PluginRegistry
 
-A registry for managing plugins and their lifecycle.
+A registry for managing plugins and their lifecycle. The plugins are grouped by level of the dependency graph: the first level has the
+plugins without dependencies, and each next level has the plugins whose dependencies are in the previous levels. The plugins of a level
+run `onRegister` and `onStart` at the same time, after the previous level ends. `onStop` runs one plugin at a time, in the reverse of the
+dependency order, because a plugin can use the connections of another one without declaring it (such as a shared store).
 
 ## Implements
 
@@ -10,7 +13,17 @@ A registry for managing plugins and their lifecycle.
 
 ### Constructor
 
-> **new PluginRegistry**(): `PluginRegistry`
+> **new PluginRegistry**(`options?`): `PluginRegistry`
+
+Creates a new plugin registry.
+
+#### Parameters
+
+##### options?
+
+[`PluginRegistryOptions`](../interfaces/PluginRegistryOptions.md) = `{}`
+
+The options of the registry.
 
 #### Returns
 
@@ -22,7 +35,7 @@ A registry for managing plugins and their lifecycle.
 
 > **destroy**(`context`): `Promise`\<`void`\>
 
-Destroys the registered plugins by executing their `onStop` lifecycle method in reverse order.
+Destroys the registered plugins by executing their `onStop` lifecycle method one by one, in the reverse of the dependency order.
 
 #### Parameters
 

@@ -11,6 +11,7 @@
 ## Interfaces
 
 - [FastifyHttpPluginOptions](interfaces/FastifyHttpPluginOptions.md)
+- [FastifyStaticFilesOptions](interfaces/FastifyStaticFilesOptions.md)
 
 ## Variables
 

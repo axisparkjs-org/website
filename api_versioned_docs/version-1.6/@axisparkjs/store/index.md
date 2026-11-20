@@ -10,8 +10,10 @@
 ## Interfaces
 
 - [CacheStore](interfaces/CacheStore.md)
+- [InMemoryCacheStoreOptions](interfaces/InMemoryCacheStoreOptions.md)
 - [Lock](interfaces/Lock.md)
 - [LockStore](interfaces/LockStore.md)
+- [MemoryStoreOptions](interfaces/MemoryStoreOptions.md)
 - [RateLimitDecision](interfaces/RateLimitDecision.md)
 - [RateLimitPolicy](interfaces/RateLimitPolicy.md)
 - [RateLimitStore](interfaces/RateLimitStore.md)
@@ -25,6 +27,10 @@
 - [StoreKind](type-aliases/StoreKind.md)
 - [StoreProvider](type-aliases/StoreProvider.md)
 - [UnionToIntersection](type-aliases/UnionToIntersection.md)
+
+## Variables
+
+- [DEFAULT\_CACHE\_MAX\_ENTRIES](variables/DEFAULT_CACHE_MAX_ENTRIES.md)
 
 ## Functions
 

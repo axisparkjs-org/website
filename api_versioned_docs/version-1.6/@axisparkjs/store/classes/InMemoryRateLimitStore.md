@@ -1,7 +1,10 @@
 # Class: InMemoryRateLimitStore
 
-Keeps the rate limit buckets in memory with a sliding window. The buckets are local to the application process,
-and the expired ones are removed every 256 checks.
+Keeps the rate limit buckets in memory with a sliding window counter: each bucket counts the requests of the current fixed window of
+`ttl` milliseconds and of the previous one, and estimates the requests of the sliding window as `previous * (1 - elapsed / ttl) + current`.
+It takes constant time and memory per client and handler, whatever the limit, at the cost of an approximation: the requests of the
+previous window are taken as spread evenly over it. The buckets are local to the application process, and a few buckets are examined on
+each check to remove the expired ones, so the cleanup never scans the whole map at once.
 
 ## Implements
 

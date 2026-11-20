@@ -1,6 +1,7 @@
 # Class: RateLimitGenerator
 
-Generates rate limit policies from metadata and transport defaults.
+Generates rate limit policies from metadata and transport defaults. The policy of each handler and transport is generated once and kept,
+so the rate limited requests do not read metadata. The kept policies are discarded when the default policy of a transport changes.
 
 ## Implements
 

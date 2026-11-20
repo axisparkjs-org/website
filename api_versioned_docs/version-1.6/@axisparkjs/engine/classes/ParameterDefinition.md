@@ -52,6 +52,21 @@ A definition for a method parameter that includes metadata and value handling.
 
 ## Methods
 
+### clone()
+
+> **clone**(): `ParameterDefinition`
+
+Creates a copy of the definition without its value. The definitions generated once per handler are copied for each invocation, because
+the pipes change the value of the parameter.
+
+#### Returns
+
+`ParameterDefinition`
+
+A new definition with the same metadata and no value.
+
+***
+
 ### setValue()
 
 > **setValue**(`value`): `void`

@@ -5,8 +5,18 @@ Properties:
 - `name`: The component name of the check in the health response.
 - `timeout`: The maximum time in milliseconds for the check.
 - `critical`: Whether a failure of the check makes the whole application `Unhealthy`.
+- `cacheTtl`: The time in milliseconds that the result of the check is reused.
 
 ## Properties
+
+### cacheTtl?
+
+> `optional` **cacheTtl?**: `number`
+
+The time in milliseconds that the result of the check is reused by the next health requests, so frequent probes do not run it every
+time. Overrides the `healthChecks.cacheTtl` of the application. `0` runs the check on every request. Defaults to the one of the application.
+
+***
 
 ### critical?
 

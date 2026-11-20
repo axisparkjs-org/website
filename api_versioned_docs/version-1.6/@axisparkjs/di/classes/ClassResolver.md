@@ -1,6 +1,6 @@
 # Class: ClassResolver\<T\>
 
-ClassResolver is responsible for resolving class providers and factory providers. It handles the instantiation of classes, resolving their dependencies, and managing scopes. It also detects circular dependencies and scope violations during the resolution process. The resolver has no state: the classes that are being resolved are kept in the resolution chain of each resolution, so concurrent resolutions never see the dependencies of each other.
+ClassResolver is responsible for resolving class providers and factory providers. It handles the instantiation of classes, resolving their dependencies in parallel, and managing scopes. It also detects circular dependencies and scope violations during the resolution process. The only state of the resolver is the cache of the constructor tokens of each class: the classes that are being resolved are kept in the resolution chain of each resolution, so concurrent resolutions never see the dependencies of each other.
 
 ## Type Parameters
 
@@ -81,3 +81,27 @@ If a scope violation is detected during resolution.
 #### Implementation of
 
 [`Resolver`](../../common/interfaces/Resolver.md).[`resolve`](../../common/interfaces/Resolver.md#resolve)
+
+***
+
+### tokensOf()
+
+> **tokensOf**(`classType`): [`Token`](../type-aliases/Token.md)[]
+
+Returns the tokens of the constructor dependencies of a class: the `@Inject()` token of each parameter, or its `design:paramtypes`
+type. They are read from the metadata the first time and kept by class (in this resolver, so each container has its own
+cache), so instantiating a known class does not read metadata.
+
+#### Parameters
+
+##### classType
+
+[`ClassType`](../../common/type-aliases/ClassType.md)
+
+The class whose dependencies are returned.
+
+#### Returns
+
+[`Token`](../type-aliases/Token.md)[]
+
+The tokens, in the order of the constructor parameters.

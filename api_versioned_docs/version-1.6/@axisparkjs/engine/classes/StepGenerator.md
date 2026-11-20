@@ -1,6 +1,7 @@
 # Class: StepGenerator
 
-A generator for creating step definitions based on metadata.
+A generator for creating step definitions based on metadata. The global steps are read from the `ClassRegistry` once, the first time a
+plan is generated, also when the application has no global steps.
 
 ## Implements
 

@@ -33,6 +33,7 @@
 - [HostDefinition](classes/HostDefinition.md)
 - [HostGuard](classes/HostGuard.md)
 - [HostMatcher](classes/HostMatcher.md)
+- [HostPattern](classes/HostPattern.md)
 - [HostProcessor](classes/HostProcessor.md)
 - [HttpCacheResolver](classes/HttpCacheResolver.md)
 - [HttpEngine](classes/HttpEngine.md)

@@ -5,9 +5,23 @@ An interface representing the metadata stored by the `@HealthCheck` decorator.
 ## Extends
 
 - [`MetadataFromClass`](../../common/interfaces/MetadataFromClass.md)
-- `Required`\<[`HealthCheckOptions`](HealthCheckOptions.md)\>
+- `Required`\<`Omit`\<[`HealthCheckOptions`](HealthCheckOptions.md), `"cacheTtl"`\>\>
+- `Pick`\<[`HealthCheckOptions`](HealthCheckOptions.md), `"cacheTtl"`\>
 
 ## Properties
+
+### cacheTtl?
+
+> `optional` **cacheTtl?**: `number`
+
+The time in milliseconds that the result of the check is reused by the next health requests, so frequent probes do not run it every
+time. Overrides the `healthChecks.cacheTtl` of the application. `0` runs the check on every request. Defaults to the one of the application.
+
+#### Inherited from
+
+[`HealthCheckOptions`](HealthCheckOptions.md).[`cacheTtl`](HealthCheckOptions.md#cachettl)
+
+***
 
 ### critical
 

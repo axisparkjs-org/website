@@ -2,10 +2,18 @@
 
 Caches the results of the handlers with the same algorithm for every transport. The resolver registered for the transport builds the key
 of the request, and the results are kept in the `CacheStore` registered for the transport with the key
-`<transport>:<Class>.<method>:<generation>:<key>`, so two handlers never share entries.
+`<transport>:<Class>.<method>:<generation>:<key>`, so two handlers never share entries. `<Class>` is the `ClassIdentifier` of the class, so
+two classes with the same name never share entries either.
 
 The generation of a handler is a counter kept in the store with the key `gen:<Class>.<method>`. `evict()` increments it, so the old
 entries are never read again and expire with their time to live. It works with every `CacheStore`, without deleting keys by prefix.
+The generation read from each store is kept in memory for one second by default (see `setGenerationTtl()`), so a cache hit costs one
+store read instead of two. `evict()` updates the generation kept in memory immediately, so the process that evicts never reads the old
+entries; other processes that share the store (such as replicas with Redis) read the new generation when their copy expires.
+
+When several requests of the same process miss the same key at the same time, only the first one invokes the handler, and the others
+wait for it and receive its result (single-flight), so a popular entry that expires does not run the handler once per request. When the
+first invocation fails or its result is not cached, the waiting requests invoke the handler themselves.
 
 The cache is an optimization: when the store fails, the handler runs as if the result was not cached, and a warning is logged at most
 once a minute for each transport.
@@ -143,6 +151,28 @@ with the transport, so two transports that share a store never share entries. Pa
 ##### store?
 
 `CacheStore`
+
+#### Returns
+
+`void`
+
+***
+
+### setGenerationTtl()
+
+> `static` **setGenerationTtl**(`ttl`): `void`
+
+Sets how long, in milliseconds, the generation of a handler read from a store is kept in memory before it is read again. It is
+the longest time that another process that shares the store keeps reading the entries evicted by `evict()` without a key. `0`
+reads the generation from the store on every request. The default is `1000`.
+
+#### Parameters
+
+##### ttl
+
+`number`
+
+The time to live of the generations kept in memory, in milliseconds.
 
 #### Returns
 

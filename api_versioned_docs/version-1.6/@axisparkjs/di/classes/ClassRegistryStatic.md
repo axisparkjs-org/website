@@ -3,6 +3,9 @@
 A static class for managing the registration and retrieval of classes.
 Classes are stored by identity, so two different classes with the same name are both registered.
 
+The lookups by metadata and by name are indexed: each one filters the registry the first time and keeps the result until a class is
+registered or removed, or metadata is defined on a class with `Metadata.define()`.
+
 ## Constructors
 
 ### Constructor

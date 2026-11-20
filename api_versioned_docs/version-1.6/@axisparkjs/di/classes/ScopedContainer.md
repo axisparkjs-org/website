@@ -2,6 +2,8 @@
 
 ScopedContainer is a specialized container that manages scoped instances of providers. It allows for resolving dependencies within a specific scope, ensuring that instances are isolated and have a limited lifetime. The ScopedContainer works in conjunction with the main Container and the ClassResolver to provide scoped resolution of dependencies.
 
+The transports create one scoped container per execution, so it is cheap: its structures are created the first time a scoped provider is resolved.
+
 ## Constructors
 
 ### Constructor

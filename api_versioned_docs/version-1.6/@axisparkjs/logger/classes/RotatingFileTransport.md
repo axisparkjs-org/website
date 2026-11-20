@@ -1,6 +1,7 @@
 # Class: RotatingFileTransport
 
-A log transport that outputs log entries to a file.
+A log transport that outputs log entries to a file, and rotates it when it reaches `maxSize` bytes. The size of the file is read once and
+then counted in memory, and the file is closed before it is rotated.
 
 ## Extends
 
@@ -64,7 +65,57 @@ The options that decide how the failures of the transport are handled.
 
 [`FileTransport`](FileTransport.md).[`errorOptions`](FileTransport.md#erroroptions)
 
+***
+
+### minLevel
+
+#### Get Signature
+
+> **get** **minLevel**(): [`LogLevel`](../enumerations/LogLevel.md)
+
+The minimum level of the entries that the transport writes. The `Logger` does not build the entries below the lowest one of its transports.
+
+##### Returns
+
+[`LogLevel`](../enumerations/LogLevel.md)
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`minLevel`](FileTransport.md#minlevel)
+
 ## Methods
+
+### append()
+
+> `protected` **append**(`file`, `data`): `Promise`\<`void`\>
+
+Writes data to a file through the stream of the transport, opening it when it is not open or the file changed.
+
+#### Parameters
+
+##### file
+
+`string`
+
+The path of the file.
+
+##### data
+
+`string`
+
+The data to write.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that resolves when the data is written.
+
+#### Overrides
+
+[`FileTransport`](FileTransport.md).[`append`](FileTransport.md#append)
+
+***
 
 ### beforeWrite()
 
@@ -77,6 +128,38 @@ The options that decide how the failures of the transport are handled.
 #### Overrides
 
 [`FileTransport`](FileTransport.md).[`beforeWrite`](FileTransport.md#beforewrite)
+
+***
+
+### closeStream()
+
+> `protected` **closeStream**(): `Promise`\<`void`\>
+
+Ends the stream of the file, after its pending entries are written. The next entry opens the file again.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`closeStream`](FileTransport.md#closestream)
+
+***
+
+### flush()
+
+> **flush**(): `Promise`\<`void`\>
+
+Waits for the pending entries and closes the file, which is opened again by the next entry.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Inherited from
+
+[`FileTransport`](FileTransport.md).[`flush`](FileTransport.md#flush)
 
 ***
 

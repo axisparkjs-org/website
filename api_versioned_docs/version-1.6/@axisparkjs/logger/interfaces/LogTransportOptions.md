@@ -4,6 +4,7 @@ Options for configuring a log transport.
 
 ## Extended by
 
+- [`ConsoleTransportOptions`](ConsoleTransportOptions.md)
 - [`FileTransportOptions`](FileTransportOptions.md)
 - [`HttpTransportOptions`](HttpTransportOptions.md)
 - [`StreamTransportOptions`](StreamTransportOptions.md)

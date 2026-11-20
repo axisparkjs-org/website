@@ -1,6 +1,7 @@
 # Class: PipeProcessor
 
-A processor for executing pipe definitions.
+A processor for executing pipe definitions. The instances of the singleton pipe-steps are kept after their first resolution, so each
+execution only resolves the scoped and transient pipe-steps with the injector.
 
 ## Implements
 

@@ -50,7 +50,34 @@ The options that decide how the failures of the transport are handled.
 
 `Pick`\<[`LogTransportOptions`](../interfaces/LogTransportOptions.md), `"onError"` \| `"failOnError"`\>
 
+***
+
+### minLevel
+
+#### Get Signature
+
+> **get** **minLevel**(): [`LogLevel`](../enumerations/LogLevel.md)
+
+The minimum level of the entries that the transport writes. The `Logger` does not build the entries below the lowest one of its transports.
+
+##### Returns
+
+[`LogLevel`](../enumerations/LogLevel.md)
+
 ## Methods
+
+### flush()
+
+> **flush**(): `Promise`\<`void`\>
+
+Writes the entries that the transport keeps in memory, if any, and waits for them. The transports that write each entry at once do
+nothing. `Logger.flush()` calls it, and the application calls it when it is destroyed.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
 
 ### write()
 

@@ -7,6 +7,12 @@ Methods:
 - `checkAll()`: Checks the health status of all registered plugins and health checks and returns an array of `HealthData` objects representing the health of each component, including the overall application health.
 - `checkApp()`: Checks the overall health status of the application and returns a single `HealthData` object representing the application's health.
 
+Concurrent health requests share the checks that are running, and the result of a check is reused for `cacheTtl` milliseconds (of the
+check, or `healthChecks.cacheTtl` of the application), so frequent probes do not run the indicators every time.
+
+The checks decorated with `@HealthCheck` are read from the `ClassRegistry` the first time the health is checked, when every file has been
+scanned, and the list is reused by the next checks.
+
 The `HealthEngine` class is designed to be used in applications that require monitoring and reporting of component health, providing a structured way to assess the state of the application, its plugins and its external dependencies.
 
 ## Constructors

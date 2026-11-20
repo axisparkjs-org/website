@@ -10,13 +10,20 @@ The chain of classes that are being resolved by one resolution, from the request
 
 The state shared by every step of the chain.
 
-***
+## Accessors
 
 ### steps
 
-> `readonly` **steps**: readonly [`ResolutionStep`](../interfaces/ResolutionStep.md)[]
+#### Get Signature
 
-The classes of the chain, from the first one to the current one.
+> **get** **steps**(): readonly [`ResolutionStep`](../interfaces/ResolutionStep.md)[]
+
+The classes of the chain, from the first one to the current one. The chain is linked to its parent, so the array is built on each
+call: it is meant for error messages, not for the resolution hot path.
+
+##### Returns
+
+readonly [`ResolutionStep`](../interfaces/ResolutionStep.md)[]
 
 ## Methods
 
@@ -52,7 +59,8 @@ The names of the classes separated by ` -> `.
 
 > **findWaitCycle**(`pending`): [`ClassType`](../../common/type-aliases/ClassType.md)[] \| `undefined`
 
-Finds the cycle that waiting for a pending instance would create: the instance is created by this chain, or by a chain that waits, directly or through other chains, for an instance created by this chain.
+Finds the cycle that waiting for a pending instance would create: the instance is created by this chain or one of its ancestors, or by
+a chain that waits, directly, through its forks or through other chains, for an instance created by one of them.
 
 #### Parameters
 
@@ -70,11 +78,27 @@ The classes of the pending instances of the cycle, or `undefined` when waiting i
 
 ***
 
+### fork()
+
+> **fork**(): `ResolutionChain`
+
+Creates a fork of the chain, with the same classes and its own state, to resolve one of several dependencies in parallel. The forks
+of a chain can wait for the instances created by each other, and a wait for an instance created by the chain or by one of its
+ancestors is still detected as a cycle.
+
+#### Returns
+
+`ResolutionChain`
+
+A new chain with the same steps and a new state linked to the state of this chain.
+
+***
+
 ### hasSingleton()
 
 > **hasSingleton**(): `boolean`
 
-Checks whether a singleton is being resolved in this chain.
+Checks whether a singleton is being resolved in this chain, in constant time.
 
 #### Returns
 
@@ -88,7 +112,7 @@ Checks whether a singleton is being resolved in this chain.
 
 > **includes**(`classType`): `boolean`
 
-Checks whether a class is already being resolved in this chain.
+Checks whether a class is already being resolved in this chain. It walks the links of the chain without allocating anything.
 
 #### Parameters
 
@@ -110,7 +134,7 @@ The class to check.
 
 > **waitFor**\<`T`\>(`pending`): `Promise`\<`T`\>
 
-Waits for a pending instance, recording it as the instance this chain is waiting for.
+Waits for a pending instance, recording it as one of the instances this chain is waiting for.
 
 #### Type Parameters
 
@@ -140,7 +164,7 @@ A promise that resolves to the instance.
 
 > **with**(`step`): `ResolutionChain`
 
-Creates the chain of a dependency of the current class.
+Creates the chain of a dependency of the current class. The new chain is linked to this one, so no array of steps is copied.
 
 #### Parameters
 

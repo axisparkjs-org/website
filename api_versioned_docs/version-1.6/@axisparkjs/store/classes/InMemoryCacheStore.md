@@ -1,7 +1,9 @@
 # Class: InMemoryCacheStore
 
 Keeps the cached values in memory. The values are local to the application process and are stored as they are, without serializing them.
-The expired values are removed when they are read and every 256 writes.
+The expired values are removed when they are read, and a few of them are examined on each write, so the cleanup never scans the whole
+map at once. The least recently used values are removed when the store reaches `maxEntries`, so the memory is bounded however many
+different keys are cached.
 
 ## Implements
 
@@ -11,7 +13,13 @@ The expired values are removed when they are read and every 256 writes.
 
 ### Constructor
 
-> **new InMemoryCacheStore**(): `InMemoryCacheStore`
+> **new InMemoryCacheStore**(`options?`): `InMemoryCacheStore`
+
+#### Parameters
+
+##### options?
+
+[`InMemoryCacheStoreOptions`](../interfaces/InMemoryCacheStoreOptions.md) = `{}`
 
 #### Returns
 

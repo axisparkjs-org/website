@@ -1,6 +1,7 @@
 # Class: ConsoleTransport
 
-A log transport that outputs log entries to the console.
+A log transport that outputs log entries to the console. By default, the entries are written to the standard output with a buffered
+asynchronous stream (`sonic-boom`), shared by every console transport of the process, so logging does not block the requests.
 
 ## Extends
 
@@ -10,21 +11,19 @@ A log transport that outputs log entries to the console.
 
 ### Constructor
 
-> **new ConsoleTransport**(`config`): `ConsoleTransport`
-
-The configuration options for the log transport.
+> **new ConsoleTransport**(`options`): `ConsoleTransport`
 
 #### Parameters
 
-##### config
+##### options
 
-[`LogTransportOptions`](../interfaces/LogTransportOptions.md)
+[`ConsoleTransportOptions`](../interfaces/ConsoleTransportOptions.md)
 
 #### Returns
 
 `ConsoleTransport`
 
-#### Inherited from
+#### Overrides
 
 [`LogTransport`](LogTransport.md).[`constructor`](LogTransport.md#constructor)
 
@@ -37,6 +36,12 @@ The configuration options for the log transport.
 #### Inherited from
 
 [`LogTransport`](LogTransport.md).[`config`](LogTransport.md#config)
+
+***
+
+### options
+
+> `protected` `readonly` **options**: [`ConsoleTransportOptions`](../interfaces/ConsoleTransportOptions.md)
 
 ## Accessors
 
@@ -56,7 +61,41 @@ The options that decide how the failures of the transport are handled.
 
 [`LogTransport`](LogTransport.md).[`errorOptions`](LogTransport.md#erroroptions)
 
+***
+
+### minLevel
+
+#### Get Signature
+
+> **get** **minLevel**(): [`LogLevel`](../enumerations/LogLevel.md)
+
+The minimum level of the entries that the transport writes. The `Logger` does not build the entries below the lowest one of its transports.
+
+##### Returns
+
+[`LogLevel`](../enumerations/LogLevel.md)
+
+#### Inherited from
+
+[`LogTransport`](LogTransport.md).[`minLevel`](LogTransport.md#minlevel)
+
 ## Methods
+
+### flush()
+
+> **flush**(): `Promise`\<`void`\>
+
+Writes the entries that are still in the buffer of the standard output and waits for them.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Overrides
+
+[`LogTransport`](LogTransport.md).[`flush`](LogTransport.md#flush)
+
+***
 
 ### write()
 

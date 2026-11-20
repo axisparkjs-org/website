@@ -1,6 +1,6 @@
 # Class: HostMatcher
 
-Selects routes whose host patterns match the current HTTP request.
+Selects routes whose host patterns match the current HTTP request, with the host patterns compiled when the routes are registered.
 
 ## Constructors
 
